@@ -21,6 +21,12 @@ obj_dir/
 runs/
 **/runs/
 
+# ---- HW5 APR src/ is populated from common/rtl by `make prep` (symlinks) ----
+hw/hw5-apr/src/*.v
+hw/hw5-apr/src/*.vh
+final-project/src/*.v
+final-project/src/*.vh
+
 # ---- Physical layout (regenerable) ----
 *.gds
 *.def

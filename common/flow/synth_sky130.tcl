@@ -10,6 +10,7 @@
 #   RTL_FILES    - space-separated list of .v/.sv files   (required)
 #   LIB          - path to the SKY130 liberty (.lib) file (required)
 #   NETLIST_OUT  - path to write the gate-level netlist   (required)
+#   INCDIRS      - optional space-separated `include search dirs
 #   STAT_OUT     - optional path to write the area/cell report
 # =============================================================================
 yosys -import
@@ -19,14 +20,25 @@ set lib       $::env(LIB)
 set rtl_files $::env(RTL_FILES)
 set netlist   $::env(NETLIST_OUT)
 
+# optional `include search directories
+set incflags {}
+if {[info exists ::env(INCDIRS)]} {
+    foreach d $::env(INCDIRS) { lappend incflags -I$d }
+}
+
 # ---- read RTL ----
 foreach f $rtl_files {
-    read_verilog -sv $f
+    read_verilog -sv {*}$incflags $f
 }
 
 # ---- elaborate + generic synthesis ----
 hierarchy -check -top $top
 synth -top $top -flatten
+
+# ---- optional clock gating (HW4 power): insert integrated clock-gating cells ----
+if {[info exists ::env(CLOCKGATE)] && $::env(CLOCKGATE) ne ""} {
+    clockgate -liberty $lib
+}
 
 # ---- map to SKY130 standard cells ----
 dfflibmap -liberty $lib
