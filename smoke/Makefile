@@ -14,7 +14,8 @@ TB         := tb/counter_tb.v
 SIM_DIR    := sim
 
 # SKY130 typical-corner liberty from the PDK baked into the container.
-PDK_ROOT   ?= /foss/pdks
+# PDK_ROOT: in-repo pdk/ if vendored (scripts/vendor-pdk.sh), else /foss/pdks.
+include ../common/flow/pdk.mk
 LIB        ?= $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
 
 COMMON     := ../common/flow

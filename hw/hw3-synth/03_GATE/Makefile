@@ -30,7 +30,8 @@ GOLDEN_DIR := ../00_TB/golden
 BUILD := build
 
 # ---- SKY130 cell models (live in the EDA container) ----
-PDK_ROOT ?= /foss/pdks
+# PDK_ROOT: in-repo pdk/ if vendored (scripts/vendor-pdk.sh), else /foss/pdks.
+include ../../../common/flow/pdk.mk
 SCL      := $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd
 CELLS_V  := $(SCL)/verilog/sky130_fd_sc_hd.v $(SCL)/verilog/primitives.v
 # The netlist instantiates the SRAM macro; supply its behavioral model so the

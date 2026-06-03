@@ -28,7 +28,8 @@ BUILD      := build
 ARTIFACTS  := ../artifacts
 
 # ---- SKY130 PDK (baked into the EDA container) ----
-PDK_ROOT   ?= /foss/pdks
+# PDK_ROOT: in-repo pdk/ if vendored (scripts/vendor-pdk.sh), else /foss/pdks.
+include ../../../common/flow/pdk.mk
 SCL        := $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd
 LIB        := $(SCL)/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
 
