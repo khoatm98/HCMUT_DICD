@@ -1,3 +1,5 @@
+# STA runs via standalone OpenSTA if present, else OpenROAD (which embeds OpenSTA -- conda path).
+STA_BIN ?= $(shell command -v sta >/dev/null 2>&1 && echo sta || echo openroad)
 # =============================================================================
 # HW4 -- IoT Data Filter : 06_POWER activity-driven power + before/after compare.
 #
@@ -38,7 +40,7 @@ define POWER_PASS
 	@mkdir -p $(BUILD)
 	TOP=$(TOP) LIB="$(LIB)" NETLIST=$(SYN_BUILD)/iotdf_$(1).v SDC=$(SDC) \
 	  VCD=$(GATE_SIM)/iotdf_workload_$(1).vcd VCD_SCOPE=$(WL_TOP)/dut \
-	  sta -no_init -exit $(COMMON)/sta.tcl | tee $(BUILD)/power_$(1).rpt
+	  $(STA_BIN) -no_init -exit $(COMMON)/sta.tcl | tee $(BUILD)/power_$(1).rpt
 	@echo ">> wrote $(BUILD)/power_$(1).rpt"
 endef
 

@@ -36,12 +36,17 @@ if [ "$SOLVER" = conda ]; then
     echo "       conda install -n base -y conda-libmamba-solver && conda config --set solver libmamba"
     echo "   (or install Miniforge, which ships the fast 'mamba')."
 fi
+# FLEXIBLE channel priority is the key to resolving the litex-hub back-end:
+# it lets the newest OpenROAD build pull low-level deps (_openmp_mutex, libboost)
+# from conda-forge instead of failing. Applied per-invocation (no global change).
+export CONDA_CHANNEL_PRIORITY=flexible
+
 if [ "$PROFILE" = full ]; then
-    echo "   WARNING: the FULL profile pulls the litex-hub back-end (OpenROAD/Magic/"
-    echo "   KLayout/Netgen + ~1-2 GB SKY130 PDK). These pin old boost/qt/ruby and"
-    echo "   OFTEN FAIL TO SOLVE. If it does, that's expected -- use the Docker path"
-    echo "   for the back-end (HW3 STA, HW5 APR) instead. The front-end profile is"
-    echo "   the supported conda setup."
+    echo "   FULL profile: the all-conda toolchain (OpenROAD/Magic/Netgen/KLayout +"
+    echo "   ~1-2 GB SKY130 PDK), solved with CONDA_CHANNEL_PRIORITY=flexible."
+    echo "   BEST-EFFORT: litex-hub builds are version-sensitive. If the solve fails,"
+    echo "   try 'mamba', or pin a recent resolvable build (see env/conda/README.md),"
+    echo "   and report the error -- the front-end profile always works as a fallback."
 fi
 
 if conda env list | grep -qE "^[[:space:]]*$ENV_NAME[[:space:]]"; then

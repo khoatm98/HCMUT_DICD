@@ -1,3 +1,5 @@
+# STA runs via standalone OpenSTA if present, else OpenROAD (which embeds OpenSTA -- conda path).
+STA_BIN ?= $(shell command -v sta >/dev/null 2>&1 && echo sta || echo openroad)
 # =============================================================================
 # Final Project / 02_SYN -- Yosys synthesis to SKY130 + OpenSTA timing.
 #
@@ -41,7 +43,7 @@ $(NETLIST): $(RTL)
 
 sta: $(NETLIST) $(SDC)
 	TOP=$(DESIGN) LIB="$(LIB)" NETLIST=$(NETLIST) SDC=$(SDC) \
-	  sta -no_init -exit $(COMMON)/sta.tcl | tee $(STA_RPT)
+	  $(STA_BIN) -no_init -exit $(COMMON)/sta.tcl | tee $(STA_RPT)
 
 all: synth sta
 	@echo ">> synth + sta complete"

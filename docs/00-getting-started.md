@@ -125,9 +125,11 @@ make healthcheck EDA_ENV=conda
 make smoke       EDA_ENV=conda          # simulation smoke (Icarus + Verilator)
 ```
 
-The conda path reliably covers the **front-end** (HW1/HW2 sim, Yosys). For the
-**back-end** (HW3 STA, HW4 power, HW5 APR) use Docker — the conda builds of those
-tools often won't solve. Details: [env/conda/README.md](../env/conda/README.md).
+The default conda env covers the **front-end** (HW1/HW2 sim, Yosys synthesis).
+For a fully no-Docker setup, `PROFILE=full bash env/conda/setup.sh` adds the
+**back-end** (OpenROAD/Magic/Netgen/KLayout + PDK; STA/power via OpenROAD, APR via
+OpenROAD-flow-scripts) — best-effort (the litex-hub solve is version-sensitive).
+Details: [env/conda/README.md](../env/conda/README.md).
 
 ## 5. Where to go next
 

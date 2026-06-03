@@ -27,7 +27,7 @@ ifeq ($(EDA_ENV),docker)
   SMOKE_TARGET = all
 else ifeq ($(EDA_ENV),conda)
   RUN          = conda run --no-capture-output -n $(CONDA_ENV) bash -lc
-  SMOKE_TARGET = front
+  SMOKE_TARGET = noapr        # full conda env (sim+synth+STA); APR via ORFS
 else                       # native
   RUN          = bash -lc
   SMOKE_TARGET = front

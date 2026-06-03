@@ -1,3 +1,5 @@
+# STA runs via standalone OpenSTA if present, else OpenROAD (which embeds OpenSTA -- conda path).
+STA_BIN ?= $(shell command -v sta >/dev/null 2>&1 && echo sta || echo openroad)
 # =============================================================================
 # Final Project / 06_POWER -- activity-driven power (baseline vs clock-gated).
 #
@@ -43,7 +45,7 @@ define POWER_RUN
 	mv $(BUILD)/$(DESIGN).vcd $(BUILD)/$(DESIGN)_$(1).vcd
 	TOP=$(DESIGN) LIB="$(LIB)" NETLIST=$(BUILD)/$(DESIGN)_$(1).v SDC=$(SDC) \
 	  VCD=$(BUILD)/$(DESIGN)_$(1).vcd VCD_SCOPE=$(TB_TOP)/dut \
-	  sta -no_init -exit $(COMMON)/sta.tcl | tee $(BUILD)/$(DESIGN)_$(1)_power.rpt
+	  $(STA_BIN) -no_init -exit $(COMMON)/sta.tcl | tee $(BUILD)/$(DESIGN)_$(1)_power.rpt
 endef
 
 baseline:

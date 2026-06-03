@@ -1,39 +1,48 @@
 # =============================================================================
-# HCMUT_DICD conda environment -- FULL profile (EXPERIMENTAL back-end).
+# HCMUT_DICD conda environment -- FULL profile (all-conda, no Docker).
 #
-# WARNING: the litex-hub builds of OpenROAD / KLayout / Magic / Netgen pin old
-# boost/qt/ruby versions that frequently CONFLICT with modern conda-forge libs,
-# so this environment often fails to solve. If it does, that is expected --
-# use the DOCKER path for the back-end (HW3 STA, HW4 power, HW5 APR), which is
-# reliable. The front-end profile (environment-frontend.yml) is the supported
-# conda setup.
+# The complete open-source toolchain on conda for a no-Docker setup: front-end
+# (sim/synth) + back-end (OpenROAD/Magic/Netgen/KLayout) + the SKY130 PDK. APR
+# orchestration is done with OpenROAD-flow-scripts (ORFS); see env/conda/README.md.
 #
-# Try it with:   PROFILE=full bash env/conda/setup.sh
-# If it won't solve, do NOT fight it -- run the back-end under Docker:
-#   make smoke              # full flow in the container
-#   make hw3 / hw5          # back-end stages in the container
+# Create it with:   PROFILE=full bash env/conda/setup.sh
+# setup.sh runs the solve with FLEXIBLE channel priority -- this is what lets the
+# newest litex-hub OpenROAD build pull its low-level deps (e.g. _openmp_mutex,
+# libboost) from conda-forge instead of failing. (BEST-EFFORT: the litex-hub
+# builds are version-sensitive; if the solve fails, pin specific builds or update
+# litex-hub -- see README.)
 # =============================================================================
 name: hcmut-eda
 
 channels:
-  - litex-hub        # conda-eda back-end builds
+  - litex-hub          # conda-eda EDA tool builds
   - conda-forge
   - nodefaults
 
 dependencies:
-  # ---- front-end (reliable, from conda-forge) ----
-  - python>=3.9
+  # ---- front-end (sim + synthesis) ----
   - make
   - iverilog
   - verilator
   - gtkwave
   - yosys
 
-  # ---- back-end (litex-hub; EXPERIMENTAL -- may not solve, prefer Docker) ----
-  - openroad            # place & route engine (also provides STA)
+  # ---- back-end (litex-hub conda-eda) ----
+  - openroad            # APR engine; ALSO embeds OpenSTA -> run STA/power via `openroad`
   - magic               # DRC + layout
   - netgen              # LVS
-  - klayout             # GDS viewer
-  - open_pdks.sky130a   # SKY130 PDK (~1-2 GB)
-  # Note: there is no standalone 'opensta' conda package; OpenSTA is embedded in
-  # 'openroad' (run STA scripts with `openroad -exit script.tcl`).
+  - klayout             # GDS viewer + DRC
+
+  # ---- SKY130 PDK (installs under $CONDA_PREFIX/share/pdk) ----
+  - open_pdks.sky130a
+
+  # ---- pip extras ----
+  - pip
+  - pip:
+      - ciel            # PDK manager (fallback / alternative to open_pdks.sky130a)
+  # Notes:
+  #  * No python pin -- let the solver pick a version the tools accept.
+  #  * There is no standalone 'opensta' package; OpenSTA is inside 'openroad'
+  #    (the flow Makefiles auto-pick `sta` if present, else `openroad`).
+  #  * APR uses OpenROAD-flow-scripts (ORFS), not LibreLane (LibreLane's
+  #    non-Docker path is Nix). See env/conda/README.md.

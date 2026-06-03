@@ -1,3 +1,5 @@
+# STA runs via standalone OpenSTA if present, else OpenROAD (which embeds OpenSTA -- conda path).
+STA_BIN ?= $(shell command -v sta >/dev/null 2>&1 && echo sta || echo openroad)
 # =============================================================================
 # HW3 02_SYN -- synthesize the convolution engine to SKY130 gates + STA.
 #
@@ -56,7 +58,7 @@ $(NETLIST): $(RTL)
 sta: $(NETLIST) $(SDC)
 	@mkdir -p $(BUILD)
 	TOP=$(DESIGN) LIB="$(LIB)" MACRO_LIBS="$(SRAM_LIB)" NETLIST=$(NETLIST) SDC=$(SDC) \
-	  sta -no_init -exit $(COMMON)/flow/sta.tcl | tee $(STA_RPT)
+	  $(STA_BIN) -no_init -exit $(COMMON)/flow/sta.tcl | tee $(STA_RPT)
 	@echo ">> STA report: $(STA_RPT)"
 
 clean:

@@ -1,3 +1,5 @@
+# STA runs via standalone OpenSTA if present, else OpenROAD (which embeds OpenSTA -- conda path).
+STA_BIN ?= $(shell command -v sta >/dev/null 2>&1 && echo sta || echo openroad)
 # =============================================================================
 # Smoke test -- take a tiny counter through the WHOLE flow to prove the toolchain
 # is correctly installed before a student touches HW1.
@@ -25,7 +27,7 @@ VERILATOR_FLAGS := -Wno-TIMESCALEMOD -Wno-BLKSEQ
 include $(COMMON)/sim_iverilog.mk
 include $(COMMON)/sim_verilator.mk
 
-.PHONY: all front banner stage-iv stage-vl stage-synth stage-sta stage-apr stage-gds \
+.PHONY: all front noapr summary-noapr banner stage-iv stage-vl stage-synth stage-sta stage-apr stage-gds \
         summary summary-front synth sta apr clean
 
 # Full flow (Docker default): sim -> synth -> STA -> APR -> GDS
@@ -34,6 +36,9 @@ all: banner stage-iv stage-vl stage-synth stage-sta stage-apr stage-gds summary
 # Simulation only (conda front-end env): Icarus + Verilator.
 # Synthesis/STA/APR need the SKY130 PDK + back-end tools -> use the Docker path.
 front: banner stage-iv stage-vl summary-front
+
+# Conda all-conda path: sim -> synth -> STA (no LibreLane APR; that uses ORFS/Docker).
+noapr: banner stage-iv stage-vl stage-synth stage-sta summary-noapr
 
 banner:
 	@echo "============================================================"
@@ -69,6 +74,14 @@ summary:
 	@echo " SMOKE TEST PASSED -- the toolchain is ready for HW1."
 	@echo "============================================================"
 
+summary-noapr:
+	@echo ""
+	@echo "============================================================"
+	@echo " SIM + SYNTH + STA PASSED (conda)."
+	@echo " APR (LibreLane) needs Docker, or run APR on conda via"
+	@echo " OpenROAD-flow-scripts (see env/conda/README.md)."
+	@echo "============================================================"
+
 summary-front:
 	@echo ""
 	@echo "============================================================"
@@ -86,7 +99,7 @@ $(NETLIST): $(RTL)
 
 sta: $(NETLIST) $(SDC)
 	TOP=$(TOP) LIB="$(LIB)" NETLIST=$(NETLIST) SDC=$(SDC) \
-	  sta -no_init -exit $(COMMON)/sta.tcl | tee $(SIM_DIR)/$(TOP).sta.rpt
+	  $(STA_BIN) -no_init -exit $(COMMON)/sta.tcl | tee $(SIM_DIR)/$(TOP).sta.rpt
 
 apr: config.json
 	bash $(COMMON)/openlane_run.sh ./config.json
