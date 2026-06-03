@@ -127,8 +127,9 @@ make smoke       EDA_ENV=conda          # simulation smoke (Icarus + Verilator)
 
 The default conda env covers the **front-end** (HW1/HW2 sim, Yosys synthesis).
 For a fully no-Docker setup, `PROFILE=full bash env/conda/setup.sh` adds the
-**back-end** (OpenROAD/Magic/Netgen/KLayout + PDK; STA/power via OpenROAD, APR via
-OpenROAD-flow-scripts) — best-effort (the litex-hub solve is version-sensitive).
+**back-end** (OpenROAD/Magic/Netgen + PDK; STA/power via OpenROAD, APR via
+OpenROAD-flow-scripts). The full profile pins **python 3.7** (the resolvable
+OpenROAD build requires it) and installs KLayout separately (GDS viewing only).
 Details: [env/conda/README.md](../env/conda/README.md).
 
 ## 5. Where to go next

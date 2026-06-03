@@ -5,16 +5,19 @@ A **no-Docker, no-root** toolchain for **Linux x86_64**. Two profiles:
 - **front-end** (default, rock-solid): `iverilog`, `verilator`, `gtkwave`,
   `yosys` — pure `conda-forge`, solves in a minute. Covers HW1/HW2 sim + (with a
   PDK) HW3 synthesis.
-- **full** (`PROFILE=full`, **all-conda back-end, best-effort**): adds
-  `openroad`, `magic`, `netgen`, `klayout`, and the SKY130 PDK from the
-  `litex-hub` (conda-eda) channel — so the *whole* flow runs without Docker.
+- **full** (`PROFILE=full`, **all-conda back-end**): adds `openroad`, `magic`,
+  `netgen`, and the SKY130 PDK from the `litex-hub` (conda-eda) channel — so the
+  *whole* flow runs without Docker.
 
-> **All-conda is best-effort.** The `litex-hub` back-end builds are
-> version-sensitive. `setup.sh` solves with **`CONDA_CHANNEL_PRIORITY=flexible`**,
-> which is what lets the newest OpenROAD build pull its low-level deps
-> (`_openmp_mutex`, `libboost`) from `conda-forge` instead of failing. If the
-> solve still fails, use `mamba`, pin a recent resolvable build, and tell us the
-> error — the front-end profile always works as a fallback.
+> **Why the full profile pins `python=3.7`.** The only `litex-hub` OpenROAD build
+> whose low-level deps still resolve against today's `conda-forge` is the
+> **2.0_3175 (2022)** build, which is pinned to **python 3.7**; newer OpenROAD
+> builds need a pruned `libboost 1.73` / `_openmp_mutex >=5.1` combo that no
+> longer resolves. So the entire back-end hangs off `python=3.7` (verified
+> resolvable 2026-06 with `CONDA_CHANNEL_PRIORITY=flexible`). `iverilog`,
+> `yosys`, `verilator`, `magic`, `netgen`, and `open_pdks` all have
+> py3.7-compatible builds. **KLayout and `ciel` are excluded** — both need
+> python ≥ 3.8 and would break the solve (see *GDS viewing* below).
 
 ## Setup
 
@@ -33,7 +36,8 @@ make smoke EDA_ENV=conda                   # sim -> synth -> STA  (no APR; see b
 | HW1/HW2 sim, waveforms | iverilog / verilator / gtkwave | ✅ |
 | HW3 synthesis | yosys + SKY130 PDK | ✅ |
 | HW3 STA, HW4 power | **openroad** (embeds OpenSTA) | ✅ the Makefiles auto-pick `sta` if present, else `openroad` (`STA_BIN`) |
-| HW3/HW4 DRC/LVS, layout | magic / netgen / klayout | ✅ |
+| HW3/HW4 DRC/LVS | magic / netgen | ✅ |
+| GDS viewing | KLayout | ➕ separate install (not in env) — see *GDS viewing* |
 | APR (HW5, Final) | OpenROAD-flow-scripts (ORFS) | ⚠️ see below — LibreLane's non-Docker path is Nix, so on conda we use ORFS |
 
 Run back-end stages by activating the env and using the per-stage dirs, e.g.:
@@ -60,19 +64,34 @@ make DESIGN_CONFIG=.../config.mk            # floorplan -> ... -> route -> GDS
 The learning objectives are identical to the LibreLane path; only the
 orchestrator differs.
 
+## GDS viewing (KLayout — optional, separate)
+KLayout isn't in the `hcmut-eda` env (it needs python ≥ 3.8 and clashes with the
+py3.7 OpenROAD). For viewing GDS, install it on its own — none of the flow's
+*checks* need it:
+```bash
+conda create -n klayout -c conda-forge klayout    # its own env, no conflict
+#   or your distro package:  apt install klayout
+klayout path/to/design.gds
+```
+
 ## PDK
 The full profile installs `open_pdks.sky130a` (PDK under `$CONDA_PREFIX/share/pdk`;
-the activate hook sets `PDK_ROOT`). If you prefer, fetch it with `ciel` instead:
+the activate hook sets `PDK_ROOT`). To make the libraries **independent of this
+conda prefix**, vendor the subset the flow needs into the repo once — then the
+stage Makefiles use `pdk/` directly (see [`../../pdk/README.md`](../../pdk/README.md)):
 ```bash
-conda run -n hcmut-eda ciel enable --pdk-root "$CONDA_PREFIX/share/pdk" <open_pdks-commit>
+conda activate hcmut-eda && bash scripts/vendor-pdk.sh   # PDK_ROOT comes from the activate hook
+git add pdk/ && git commit -m "vendor SKY130 lib subset"
 ```
 
 ## It's slow / it failed to solve
 - **Slow solve:** use `mamba` (Miniforge) or `conda install -n base -y
   conda-libmamba-solver && conda config --set solver libmamba`.
-- **`LibMambaUnsatisfiableError` on the full profile:** confirm `setup.sh` used
-  `CONDA_CHANNEL_PRIORITY=flexible` (it does). If it still fails, pin specific
-  recent `litex-hub` builds or update the channel; report the exact error.
+- **`LibMambaUnsatisfiableError` on the full profile:** the env file is verified
+  resolvable (python 3.7 + OpenROAD 2.0_3175 + open_pdks, flexible priority). If
+  you hit this, you almost certainly changed `python=3.7` or re-added KLayout/`ciel`
+  (python ≥ 3.8) — revert that. Confirm `setup.sh` used `CONDA_CHANNEL_PRIORITY=flexible`
+  (it does).
 - **HW1 needs nothing but Verilator + Python** if you just want to start.
 
 ## Offline / air-gapped

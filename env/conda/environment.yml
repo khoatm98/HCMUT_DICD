@@ -2,15 +2,24 @@
 # HCMUT_DICD conda environment -- FULL profile (all-conda, no Docker).
 #
 # The complete open-source toolchain on conda for a no-Docker setup: front-end
-# (sim/synth) + back-end (OpenROAD/Magic/Netgen/KLayout) + the SKY130 PDK. APR
+# (sim/synth) + back-end (OpenROAD/Magic/Netgen) + the SKY130 PDK. APR
 # orchestration is done with OpenROAD-flow-scripts (ORFS); see env/conda/README.md.
 #
 # Create it with:   PROFILE=full bash env/conda/setup.sh
-# setup.sh runs the solve with FLEXIBLE channel priority -- this is what lets the
-# newest litex-hub OpenROAD build pull its low-level deps (e.g. _openmp_mutex,
-# libboost) from conda-forge instead of failing. (BEST-EFFORT: the litex-hub
-# builds are version-sensitive; if the solve fails, pin specific builds or update
-# litex-hub -- see README.)
+# setup.sh runs the solve with FLEXIBLE channel priority.
+#
+# WHY python=3.7:  the only litex-hub OpenROAD build whose low-level deps still
+# resolve against today's conda-forge is the 2.0_3175 (2022) build, and it is
+# pinned to python 3.7. Newer OpenROAD builds need a pruned libboost 1.73 /
+# _openmp_mutex >=5.1 combo that no longer resolves. So the WHOLE all-conda
+# back-end hangs off python=3.7. (Verified resolvable 2026-06; iverilog/yosys/
+# verilator/magic/netgen/open_pdks all have py3.7-compatible builds.)
+#
+# NOT here: KLayout (its litex-hub build needs a pruned Qt 5.6.3 and the
+# conda-forge build needs python>=3.8 -> conflicts with the py3.7 OpenROAD);
+# and `ciel` (pip; needs python>=3.8). GDS viewing is optional -- install
+# KLayout in a SEPARATE env (`conda create -n klayout -c conda-forge klayout`)
+# or via the system package; the PDK comes from open_pdks.sky130a, not ciel.
 # =============================================================================
 name: hcmut-eda
 
@@ -20,12 +29,13 @@ channels:
   - nodefaults
 
 dependencies:
-  # litex-hub tools cap below python 3.12; pin 3.11 (conda-forge KLayout also
-  # supports it). WITHOUT this, conda keeps the latest python (3.14) and nothing
-  # resolves.
-  - python=3.11
+  # Pinned to 3.7 because the resolvable litex-hub OpenROAD build requires it
+  # (see header). WITHOUT this pin, conda keeps the newest python and the
+  # OpenROAD solve fails. Plain (un-prefixed) tool names + flexible priority let
+  # conda pick the litex-hub py3.7 builds and pull low-level deps from conda-forge.
+  - python=3.7
 
-  # ---- front-end (sim + synthesis), from conda-forge ----
+  # ---- front-end (sim + synthesis) ----
   - make
   - iverilog
   - verilator
@@ -33,20 +43,15 @@ dependencies:
   - yosys
 
   # ---- back-end ----
-  - litex-hub::openroad        # APR engine; ALSO embeds OpenSTA -> run STA/power via `openroad`
-  - litex-hub::magic           # DRC + layout
-  - litex-hub::netgen          # LVS  (NB: conda-forge 'netgen' is a different MESH tool)
-  - conda-forge::klayout       # modern Qt build (litex-hub KLayout needs a pruned old Qt 5.6.3)
+  - openroad        # APR engine; ALSO embeds OpenSTA -> run STA/power via `openroad`
+  - magic           # DRC + layout
+  - netgen          # LVS  (NB: conda-forge 'netgen' is a different MESH tool; litex-hub's is the IC one)
 
   # ---- SKY130 PDK (installs under $CONDA_PREFIX/share/pdk) ----
-  - litex-hub::open_pdks.sky130a
-
-  # ---- pip extras ----
-  - pip
-  - pip:
-      - ciel            # PDK manager (fallback / alternative to open_pdks.sky130a)
+  - open_pdks.sky130a
   # Notes:
   #  * There is no standalone 'opensta' package; OpenSTA is inside 'openroad'
   #    (the flow Makefiles auto-pick `sta` if present, else `openroad`).
+  #  * KLayout / ciel are intentionally omitted (python>=3.8) -- see header.
   #  * APR uses OpenROAD-flow-scripts (ORFS), not LibreLane (LibreLane's
   #    non-Docker path is Nix). See env/conda/README.md.

@@ -95,9 +95,10 @@ When `make smoke` prints `SMOKE TEST PASSED`, you're ready for HW1.
 
 > **No Docker?** On Linux a conda env (no root) runs the whole flow: the
 > front-end always (sim + Yosys synthesis), and `PROFILE=full bash
-> env/conda/setup.sh` adds the back-end (OpenROAD/Magic/Netgen/KLayout + SKY130
-> PDK; STA/power via OpenROAD, APR via OpenROAD-flow-scripts) — best-effort. See
-> [env/conda/README.md](env/conda/README.md).
+> env/conda/setup.sh` adds the back-end (OpenROAD/Magic/Netgen + SKY130 PDK;
+> STA/power via OpenROAD, APR via OpenROAD-flow-scripts). The full profile pins
+> **python 3.7** (the resolvable OpenROAD build needs it) and leaves KLayout as a
+> separate install. See [env/conda/README.md](env/conda/README.md).
 
 Full walkthrough (including the browser-based GUI for GTKWave/KLayout):
 [docs/00-getting-started.md](docs/00-getting-started.md).

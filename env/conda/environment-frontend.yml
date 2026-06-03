@@ -17,7 +17,9 @@ channels:
   - nodefaults
 
 dependencies:
-  - python=3.11        # pinned to match the full profile (litex-hub tools cap <3.12)
+  - python=3.11        # modern python for ciel + conda-forge tools. (The FULL
+                       # profile uses 3.7 for OpenROAD; this front-end env is
+                       # independent and needs >=3.8 for ciel.)
   - make
   - pip
   - iverilog       # HW1, HW2 simulation

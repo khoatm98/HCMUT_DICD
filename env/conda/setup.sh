@@ -11,7 +11,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ENV_NAME="${1:-hcmut-eda}"
-PROFILE="${PROFILE:-frontend}"       # frontend (reliable, default) | full (EXPERIMENTAL back-end)
+PROFILE="${PROFILE:-frontend}"       # frontend (small/fast, default) | full (all-conda back-end, py3.7)
 
 case "$PROFILE" in
     frontend) YML="$HERE/environment-frontend.yml" ;;
@@ -42,11 +42,11 @@ fi
 export CONDA_CHANNEL_PRIORITY=flexible
 
 if [ "$PROFILE" = full ]; then
-    echo "   FULL profile: the all-conda toolchain (OpenROAD/Magic/Netgen/KLayout +"
-    echo "   ~1-2 GB SKY130 PDK), solved with CONDA_CHANNEL_PRIORITY=flexible."
-    echo "   BEST-EFFORT: litex-hub builds are version-sensitive. If the solve fails,"
-    echo "   try 'mamba', or pin a recent resolvable build (see env/conda/README.md),"
-    echo "   and report the error -- the front-end profile always works as a fallback."
+    echo "   FULL profile: the all-conda toolchain (OpenROAD/Magic/Netgen + the"
+    echo "   SKY130 PDK via open_pdks), solved with CONDA_CHANNEL_PRIORITY=flexible."
+    echo "   NOTE: this pins python=3.7 (the resolvable OpenROAD build needs it) and"
+    echo "   omits KLayout/ciel (python>=3.8). Install KLayout separately for GDS"
+    echo "   viewing; see env/conda/README.md. The front-end profile is the fallback."
 fi
 
 if [ "${CONDA_DEFAULT_ENV:-}" = "$ENV_NAME" ]; then
@@ -77,13 +77,17 @@ EOS
 
 echo
 echo ">> Done. Run sim flows with:   make smoke EDA_ENV=conda"
-echo
-echo ">> To run HW3 SYNTHESIS on conda, fetch the SKY130 PDK once (Yosys is already"
-echo "   in this env). 'ciel' (pip) is installed; enable a pinned PDK into the env:"
-echo "       conda run -n $ENV_NAME ciel enable --pdk-root \"$PREFIX/share/pdk\" <open_pdks-commit>"
-echo "   (see https://github.com/fossi-foundation/ciel for the commit list). The"
-echo "   activate hook already points PDK_ROOT there, so 'make hw3 ... EDA_ENV=conda'"
-echo "   synthesis then finds the liberty. STA / power / APR still use Docker."
 if [ "$PROFILE" = full ]; then
+    echo
+    echo ">> FULL env ready: sim + synth + STA + DRC/LVS run on conda; the SKY130 PDK"
+    echo "   (open_pdks) is at $PREFIX/share/pdk and the activate hook sets PDK_ROOT."
+    echo "   Try:   conda activate $ENV_NAME && make smoke EDA_ENV=conda   (sim->synth->STA)"
+    echo "   APR (HW5/Final) runs via OpenROAD-flow-scripts -- see env/conda/README.md."
+    echo "   Optional: vendor the libs into the repo so they're prefix-independent:"
+    echo "       bash scripts/vendor-pdk.sh && git add pdk/   (see pdk/README.md)"
     echo ">> Pin versions for a cohort:  conda env export -n $ENV_NAME > env/conda/conda-lock.yml"
+else
+    echo
+    echo ">> FRONT-END env (sim + waveforms + yosys). For the all-conda back-end"
+    echo "   (OpenROAD/Magic/Netgen + SKY130 PDK), rebuild with:  PROFILE=full bash env/conda/setup.sh"
 fi
