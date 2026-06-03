@@ -17,7 +17,7 @@ channels:
   - nodefaults
 
 dependencies:
-  - python>=3.9
+  - python=3.11        # pinned to match the full profile (litex-hub tools cap <3.12)
   - make
   - pip
   - iverilog       # HW1, HW2 simulation

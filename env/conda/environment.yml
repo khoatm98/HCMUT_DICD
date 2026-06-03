@@ -20,28 +20,32 @@ channels:
   - nodefaults
 
 dependencies:
-  # ---- front-end (sim + synthesis) ----
+  # litex-hub tools cap below python 3.12; pin 3.11 (conda-forge KLayout also
+  # supports it). WITHOUT this, conda keeps the latest python (3.14) and nothing
+  # resolves.
+  - python=3.11
+
+  # ---- front-end (sim + synthesis), from conda-forge ----
   - make
   - iverilog
   - verilator
   - gtkwave
   - yosys
 
-  # ---- back-end (litex-hub conda-eda) ----
-  - openroad            # APR engine; ALSO embeds OpenSTA -> run STA/power via `openroad`
-  - magic               # DRC + layout
-  - netgen              # LVS
-  - klayout             # GDS viewer + DRC
+  # ---- back-end ----
+  - litex-hub::openroad        # APR engine; ALSO embeds OpenSTA -> run STA/power via `openroad`
+  - litex-hub::magic           # DRC + layout
+  - litex-hub::netgen          # LVS  (NB: conda-forge 'netgen' is a different MESH tool)
+  - conda-forge::klayout       # modern Qt build (litex-hub KLayout needs a pruned old Qt 5.6.3)
 
   # ---- SKY130 PDK (installs under $CONDA_PREFIX/share/pdk) ----
-  - open_pdks.sky130a
+  - litex-hub::open_pdks.sky130a
 
   # ---- pip extras ----
   - pip
   - pip:
       - ciel            # PDK manager (fallback / alternative to open_pdks.sky130a)
   # Notes:
-  #  * No python pin -- let the solver pick a version the tools accept.
   #  * There is no standalone 'opensta' package; OpenSTA is inside 'openroad'
   #    (the flow Makefiles auto-pick `sta` if present, else `openroad`).
   #  * APR uses OpenROAD-flow-scripts (ORFS), not LibreLane (LibreLane's

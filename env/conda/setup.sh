@@ -49,11 +49,19 @@ if [ "$PROFILE" = full ]; then
     echo "   and report the error -- the front-end profile always works as a fallback."
 fi
 
-if conda env list | grep -qE "^[[:space:]]*$ENV_NAME[[:space:]]"; then
-    "$SOLVER" env update -n "$ENV_NAME" -f "$YML"
-else
-    "$SOLVER" env create -n "$ENV_NAME" -f "$YML"
+if [ "${CONDA_DEFAULT_ENV:-}" = "$ENV_NAME" ]; then
+    echo "ERROR: '$ENV_NAME' is the ACTIVE conda env, so it can't be recreated." >&2
+    echo "       Run 'conda deactivate' first, then re-run this script." >&2
+    exit 1
 fi
+
+if conda env list | grep -qE "^[[:space:]]*$ENV_NAME[[:space:]]"; then
+    echo ">> env '$ENV_NAME' exists -- removing + recreating for a clean solve"
+    echo "   (a plain 'env update' won't downgrade a stale python or swap profiles;"
+    echo "    this env is course-dedicated, so recreating is safe)."
+    conda env remove -n "$ENV_NAME" -y
+fi
+"$SOLVER" env create -n "$ENV_NAME" -f "$YML"
 
 # Export PDK_ROOT whenever the env activates, so the homework Makefiles find the
 # SKY130 liberty exactly as they do inside Docker. (Harmless for the frontend
