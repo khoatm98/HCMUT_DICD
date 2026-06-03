@@ -1,0 +1,23 @@
+# =============================================================================
+# HCMUT_DICD conda environment -- FRONT-END profile (small + fast).
+#
+# Just the simulation/lint tools needed for HW1 and HW2 (no PDK, no back-end
+# tools), so you can start immediately without the multi-GB full install.
+#
+# Create it with:   PROFILE=frontend bash env/conda/setup.sh
+# Later, add the rest (synth/STA/APR + SKY130 PDK) for HW3+ with:
+#                    bash env/conda/setup.sh          # full profile, same env
+# =============================================================================
+name: hcmut-eda
+
+channels:
+  - litex-hub
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - python=3.11
+  - make
+  - iverilog
+  - verilator
+  - gtkwave
