@@ -28,12 +28,13 @@ include ../../../common/flow/pdk.mk
 SCL      := $(STD_CELL_DIR)
 LIB      := $(SCL)/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
 
-# ---- SRAM hard macro: blackboxed in synthesis; its .lib gives STA the timing ----
-# The behavioral model supplies the interface for the blackbox; the macro's
-# liberty (SRAM_LIB) is resolved by pdk.mk -- it prefers the in-repo vendored
-# copy under pdk/.../sky130_sram_macros (see pdk/NOTICE), else the external PDK.
-# Override SRAM_LIB=<file> if your macro liberty lives elsewhere.
-SRAM_MODEL := $(CONV_INC)/sky130_sram_1kbyte_1rw1r_32x256_8.v
+# ---- SRAM hard macro ----
+# Synthesis blackboxes the macro via its LIBERTY (SRAM_LIB, read_liberty -lib) --
+# the authoritative pin interface -- NOT its behavioral .v (which is a SIMULATION
+# model, used only by 01_RTL/03_GATE). STA uses the same .lib for the macro's
+# timing. SRAM_LIB is resolved by pdk.mk: in-repo vendored copy under
+# pdk/.../sky130_sram_macros (see pdk/NOTICE), else the external PDK. Override
+# SRAM_LIB=<file> if your macro liberty lives elsewhere.
 
 NETLIST  := $(BUILD)/conv_netlist.v
 AREA_RPT := $(BUILD)/conv_area.rpt
@@ -57,7 +58,7 @@ synth: $(NETLIST)
 $(NETLIST): $(RTL)
 	@mkdir -p $(BUILD)
 	TOP=$(DESIGN) RTL_FILES="$(RTL)" INCDIRS="$(CONV_INC)" LIB="$(LIB)" \
-	  BLACKBOX_FILES="$(SRAM_MODEL)" \
+	  MACRO_LIBS="$(SRAM_LIB)" \
 	  NETLIST_OUT=$(NETLIST) STAT_OUT=$(AREA_RPT) \
 	  yosys -c $(COMMON)/flow/synth_sky130.tcl
 	@echo ">> synthesized $(DESIGN) -> $(NETLIST)  (area: $(AREA_RPT))"

@@ -72,7 +72,7 @@ apr-conda: $(GDS)
 $(NETLIST): prep
 	@mkdir -p build
 	TOP=conv_engine RTL_FILES="src/conv_engine.v" INCDIRS="$(CONV_RTL)" LIB="$(LIB)" \
-	  BLACKBOX_FILES="$(SRAM_MODEL)" NETLIST_OUT=$(NETLIST) STAT_OUT=build/conv_area.rpt \
+	  MACRO_LIBS="$(SRAM_LIB)" NETLIST_OUT=$(NETLIST) STAT_OUT=build/conv_area.rpt \
 	  yosys -c $(COMMON)/synth_sky130.tcl
 
 $(DEF): $(NETLIST) $(SDC)
