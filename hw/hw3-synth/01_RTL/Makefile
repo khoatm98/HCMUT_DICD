@@ -59,8 +59,10 @@ prep:
 	@ln -sfn ../$(GOLDEN_DIR) $(BUILD)/golden
 
 # ---- Verilator self-checking sim (fast) ----
+# -MAKEFLAGS PYTHON3=python3 works around litex-hub conda Verilator's verilated.mk
+# (hardcoded build-machine python); harmless elsewhere (python3 is on PATH).
 vsim: prep
-	verilator --binary --timing -Wall -Wno-fatal $(VERILATOR_FLAGS) \
+	verilator --binary --timing -Wall -Wno-fatal -MAKEFLAGS PYTHON3=python3 $(VERILATOR_FLAGS) \
 		--Mdir $(BUILD)/obj_dir --top-module $(TB_TOP) -o V$(TB_TOP) \
 		$(abspath $(RTL)) $(abspath $(SRAM_MODEL)) $(abspath $(TB))
 	cd $(BUILD) && ./obj_dir/V$(TB_TOP) | tee sim/$(TOP)_vl.log

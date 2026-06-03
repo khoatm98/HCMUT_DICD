@@ -19,6 +19,10 @@
 VERILATOR       ?= verilator
 SIM_DIR         ?= sim
 VERILATOR_FLAGS ?=
+# litex-hub's conda Verilator ships a verilated.mk with a hardcoded build-machine
+# PYTHON3 (/root/conda-eda/.../python3) that breaks `--binary` here. -MAKEFLAGS
+# overrides PYTHON3 in the build sub-make (harmless elsewhere; python3 is on PATH).
+VERILATOR_BUILD_FLAGS ?= -MAKEFLAGS PYTHON3=python3
 
 .PHONY: lint
 lint:
@@ -28,7 +32,7 @@ lint:
 .PHONY: vsim
 vsim:
 	@mkdir -p $(SIM_DIR)
-	$(VERILATOR) --binary --timing -Wall -Wno-fatal $(VERILATOR_FLAGS) \
+	$(VERILATOR) --binary --timing -Wall -Wno-fatal $(VERILATOR_BUILD_FLAGS) $(VERILATOR_FLAGS) \
 		--top-module $(TB_TOP) -o V$(TB_TOP) $(RTL) $(TB)
 	./obj_dir/V$(TB_TOP) | tee $(SIM_DIR)/$(TOP)_vl.log
 	@grep -q "RESULT: PASS" $(SIM_DIR)/$(TOP)_vl.log \

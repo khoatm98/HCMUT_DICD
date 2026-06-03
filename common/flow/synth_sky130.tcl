@@ -54,6 +54,10 @@ abc -liberty $lib
 
 # ---- clean up ----
 setundef -zero
+# map constants to tie cells (sky130_fd_sc_hd__conb_1: HI=1, LO=0), AFTER setundef
+# so the 0s it inserts are tied too. Without this, 1'b1/1'b0 leave bare `one_`/
+# `zero_` nets that APR's router rejects ("signal type POWER is not routable").
+hilomap -hicell sky130_fd_sc_hd__conb_1 HI -locell sky130_fd_sc_hd__conb_1 LO
 splitnets
 opt_clean -purge
 

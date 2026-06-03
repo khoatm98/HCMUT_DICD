@@ -48,3 +48,6 @@ env/conda/conda-lock.yml
 .DS_Store
 *.swp
 *~
+
+# ---- instructor solutions workspace (build-ws.sh) -- NEVER commit (contains solutions) ----
+/ws/
