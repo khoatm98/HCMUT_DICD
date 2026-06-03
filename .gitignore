@@ -29,9 +29,12 @@ hw/hw5-apr/04_APR/src/*.v
 hw/hw5-apr/04_APR/src/*.vh
 hw/hw5-apr/04_APR/macros/
 
-# ---- Physical layout (regenerable) ----
+# ---- Physical layout (regenerable RUN outputs) ----
 *.gds
 *.def
+# ...but VENDORED PDK GDS under pdk/ IS committed (a library deliverable, not a
+# run artifact -- e.g. the SRAM macro layout; see pdk/NOTICE).
+!pdk/**/*.gds
 
 # ---- Python ----
 __pycache__/
