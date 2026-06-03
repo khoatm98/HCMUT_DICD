@@ -1,0 +1,12 @@
+# SKY130 PDK pin.
+#
+# The PDK is BAKED INTO the EDA image (see ../../VERSIONS.lock), so students do
+# NOT download it separately. This file records the exact variant the course
+# standardizes on, so every student's area / timing / power numbers are
+# comparable and reproducible.
+PDK          = sky130A
+STD_CELL_LIB = sky130_fd_sc_hd
+
+# If you ever switch to runtime PDK fetching (ciel / volare) instead of the
+# baked-in PDK, pin the exact open_pdks revision here:
+# OPEN_PDKS_COMMIT = __fill_me_in__

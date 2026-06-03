@@ -1,0 +1,31 @@
+# =============================================================================
+# HCMUT_DICD EDA environment -- ONE image, the whole open-source toolchain
+# (Icarus, Verilator, GTKWave, Yosys+ABC, OpenROAD, OpenSTA, KLayout, Magic,
+#  Netgen) plus the SKY130 PDK, all baked in.
+#
+# Usage (from the repo root, via the top-level Makefile):
+#   make image-pull   # pull the pinned image once
+#   make shell        # interactive course shell inside the container
+#   make env-up       # browser (noVNC) desktop for GTKWave / KLayout
+#
+# The host only needs Docker. See docs/00-getting-started.md.
+# Relative paths below are resolved against THIS file's directory (env/),
+# so "../" is the repo root.
+# =============================================================================
+services:
+  eda:
+    image: ${EDA_IMAGE:-hpretl/iic-osic-tools:2026.05}
+    container_name: hcmut-dicd-eda
+    environment:
+      - DESIGNS=/foss/designs
+      - PDK=sky130A
+      - STD_CELL_LIBRARY=sky130_fd_sc_hd
+      - DISPLAY=${DISPLAY:-}
+      - VNC_PW=${VNC_PW:-hcmut}
+    ports:
+      - "${NOVNC_PORT:-8888}:80"      # browser desktop -> http://localhost:8888
+      - "${VNC_PORT:-5901}:5901"      # raw VNC (optional)
+    volumes:
+      - ../:/foss/designs/HCMUT_DICD          # mount the whole repo, live (edit on host, run in container)
+      - /tmp/.X11-unix:/tmp/.X11-unix         # native X11 on Linux (harmless elsewhere)
+    working_dir: /foss/designs/HCMUT_DICD

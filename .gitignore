@@ -1,0 +1,34 @@
+# ---- Simulation build / run artifacts ----
+sim/
+**/sim/
+*.vvp
+*.vcd
+*.fst
+*.saif
+obj_dir/
+**/obj_dir/
+
+# ---- Synthesis / STA generated outputs ----
+*.netlist.v
+*_syn.v
+*.rpt
+
+# ---- OpenLane / LibreLane run directories ----
+runs/
+**/runs/
+
+# ---- Physical layout (regenerable) ----
+*.gds
+*.def
+
+# ---- Python ----
+__pycache__/
+*.pyc
+
+# ---- Local environment / secrets ----
+env/.env
+
+# ---- OS / editor cruft ----
+.DS_Store
+*.swp
+*~

@@ -1,0 +1,9 @@
+{
+    "DESIGN_NAME": "counter",
+    "VERILOG_FILES": "dir::rtl/*.v",
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 20,
+    "PDK": "sky130A",
+    "FP_CORE_UTIL": 40,
+    "PL_TARGET_DENSITY_PCT": 50
+}

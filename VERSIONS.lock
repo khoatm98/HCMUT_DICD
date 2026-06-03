@@ -1,0 +1,30 @@
+# =============================================================================
+# HCMUT_DICD -- reproducibility bill-of-materials.
+# Pin EVERYTHING here. To reproduce a cohort's results months/years later,
+# rebuild from exactly these versions.
+# =============================================================================
+
+# ---- All-in-one EDA container (tools + SKY130 PDK baked in) ----
+EDA_IMAGE         = hpretl/iic-osic-tools:2026.05
+# For TRUE reproducibility pin the immutable digest. After `make image-pull` run:
+#   docker inspect --format='{{index .RepoDigests 0}}' hpretl/iic-osic-tools:2026.05
+# and paste the sha256 here:
+EDA_IMAGE_DIGEST  = sha256:__FILL_IN_AFTER_PULL__
+
+# ---- PDK ----
+PDK               = sky130A
+STD_CELL_LIBRARY  = sky130_fd_sc_hd
+
+# ---- APR flow ----
+APR_FLOW          = LibreLane          # FOSSi-maintained OpenLane-2 successor
+
+# ---- Tool versions (informational; authoritative versions ship in the image) ----
+# Run `make healthcheck` inside the container and paste the output here at
+# course start so the exact toolchain is on record:
+# iverilog   = ...
+# verilator  = ...
+# yosys      = ...
+# opensta    = ...
+# openroad   = ...
+# klayout    = ...
+# librelane  = ...
