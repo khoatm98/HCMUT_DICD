@@ -28,9 +28,9 @@ BUILD      := build
 ARTIFACTS  := ../artifacts
 
 # ---- SKY130 PDK (baked into the EDA container) ----
-# PDK_ROOT: in-repo pdk/ if vendored (scripts/vendor-pdk.sh), else /foss/pdks.
+# Std cells (SCL/LIB) resolve via pdk.mk: in-repo pdk/ if vendored, else PDK_ROOT.
 include ../../../common/flow/pdk.mk
-SCL        := $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd
+SCL        := $(STD_CELL_DIR)
 LIB        := $(SCL)/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
 
 .PHONY: power-base power-cg compare clean

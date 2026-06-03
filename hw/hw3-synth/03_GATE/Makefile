@@ -30,9 +30,9 @@ GOLDEN_DIR := ../00_TB/golden
 BUILD := build
 
 # ---- SKY130 cell models (live in the EDA container) ----
-# PDK_ROOT: in-repo pdk/ if vendored (scripts/vendor-pdk.sh), else /foss/pdks.
+# Std cells (SCL/LIB) resolve via pdk.mk: in-repo pdk/ if vendored, else PDK_ROOT.
 include ../../../common/flow/pdk.mk
-SCL      := $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd
+SCL      := $(STD_CELL_DIR)
 CELLS_V  := $(SCL)/verilog/sky130_fd_sc_hd.v $(SCL)/verilog/primitives.v
 # The netlist instantiates the SRAM macro; supply its behavioral model so the
 # gate-level sim can run (the real macro's timing model could be used instead).

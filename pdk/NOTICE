@@ -3,7 +3,31 @@ THIRD-PARTY VENDORED ARTIFACTS
 
 This directory contains a small set of third-party SKY130 library artifacts that
 are NOT authored by the HCMUT_DICD course. They are redistributed here so the
-back-end flow (STA / APR / gate-sim) is self-contained. Attribution and licenses:
+back-end flow (synth / STA / gate-sim / power) is self-contained. Attribution and
+licenses:
+
+-------------------------------------------------------------------------------
+sky130A/libs.ref/sky130_fd_sc_hd/  --  high-density standard-cell library (SUBSET)
+-------------------------------------------------------------------------------
+Views:   lib/sky130_fd_sc_hd__tt_025C_1v80.lib   (typical-corner timing; synth + STA)
+         verilog/sky130_fd_sc_hd.v, verilog/primitives.v  (cell models; gate-sim)
+         lef/sky130_fd_sc_hd.lef                  (abstract)
+         techlef/sky130_fd_sc_hd__{min,nom,max}.tlef (+ rram variants)
+This is the MINIMAL subset the flow reads (one timing corner) -- NOT the whole
+library (no GDS, no other corners). Full APR still needs a complete external PDK.
+
+Origin:  SkyWater SKY130 PDK, assembled by open_pdks.
+         (c) 2020 The SkyWater PDK Authors. Licensed under the Apache License 2.0.
+         <https://github.com/google/skywater-pdk>  <https://github.com/RTimothyEdwards/open_pdks>
+Obtained via:
+         volare (Efabless) prebuilt sky130A, open_pdks commit
+         c6d73a35f524070e85faff4a6a9eef49553ebc2b  (fetched with scripts/vendor-pdk.sh).
+
+SHA-256 (as vendored):
+  8e78e14442062dba34d414fca6490b2f6b96038d4510d1438ca44fee31487135  lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+  12d5d6448ccf265c544d88402d5c10ab6de9bee8b8cde48eee1f31ea8c3c3e45  verilog/sky130_fd_sc_hd.v
+  7d4b1441d06b0f2b9662befa675a0484d77149e04eb42a5f1fa2d4cfded7b2ce  verilog/primitives.v
+  3a3ea4e9d0973402702764d897659e52fe3d413eb48c306cd811de40a75264fa  lef/sky130_fd_sc_hd.lef
 
 -------------------------------------------------------------------------------
 sky130A/libs.ref/sky130_sram_macros/  --  SRAM hard macro
@@ -32,5 +56,6 @@ SHA-256 (as vendored):
   88eaee9f0c480065545479143bfef1e3186a5d97e4a7f79b8c57ad57637cdfeb  verilog/sky130_sram_1kbyte_1rw1r_32x256_8.v
   7766c62acbe63ff4bdc897e63f60d2faccfb76204921aee4240ecc719933b730  verilog/sky130_sram_1kbyte_1rw1r_32x256_8.bb.v
 
-Note: the SKY130 STANDARD CELLS (sky130_fd_sc_hd) are NOT vendored here -- get
-them from open_pdks (the conda 'full' profile) or ciel/volare; see pdk/README.md.
+Note: this is a SUBSET sufficient for synth / STA / gate-sim / power. Full APR
+(HW5 / Final) still needs a COMPLETE external PDK (tech files, all cells, GDS) --
+fetch it with volare/ciel or the conda 'full' profile; see pdk/README.md.

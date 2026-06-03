@@ -1,39 +1,44 @@
 # =============================================================================
-# pdk.mk  --  resolve PDK_ROOT (+ the SRAM macro dir), preferring IN-REPO libs.
+# pdk.mk  --  resolve the SKY130 library paths the flow needs, preferring the
+# IN-REPO vendored subset (pdk/) over an external PDK install.
 #
-# Include this from a stage Makefile (it replaces a `PDK_ROOT ?= /foss/pdks`
-# line). It sets:
+# Include this from a stage Makefile. It sets:
 #
-#   PDK_ROOT        the SKY130 PDK root. Prefers the in-repo pdk/ ONLY when it
-#                   actually holds the STANDARD CELLS (sky130_fd_sc_hd) -- a
-#                   partial vendoring (e.g. the SRAM macro alone) must NOT hijack
-#                   the std-cell path. Otherwise: env PDK_ROOT, else /foss/pdks.
+#   STD_CELL_DIR    sky130_fd_sc_hd dir (the std-cell lib/verilog/lef the
+#                   file-level tools read for SYNTH / STA / GATE-SIM / POWER).
+#                   Prefers the in-repo vendored subset, else the external PDK.
+#   SRAM_MACRO_DIR  sky130_sram_macros dir (lib/lef/gds for the HW3/HW5 SRAM).
+#                   Resolved the same way (see pdk/NOTICE).
+#   SRAM_LIB        the SRAM macro's typical-corner liberty (from SRAM_MACRO_DIR).
 #
-#   SRAM_MACRO_DIR  the sky130_sram_macros dir (lib/lef/gds for the HW3/HW5 SRAM),
-#                   resolved INDEPENDENTLY: prefers the in-repo vendored copy
-#                   (pdk/sky130A/libs.ref/sky130_sram_macros, see pdk/NOTICE) even
-#                   when the std cells come from an external PDK; else it derives
-#                   from PDK_ROOT.
-#   SRAM_LIB        the macro's typical-corner liberty, derived from SRAM_MACRO_DIR.
+#   PDK_ROOT        a COMPLETE external PDK root, for APR (LibreLane/OpenROAD-flow,
+#                   which need the full PDK -- tech LEF, magic/klayout tech, all
+#                   cells). This is DELIBERATELY *not* redirected to the in-repo
+#                   pdk/, because pdk/ holds only a SUBSET (the tt std-cell lib +
+#                   the SRAM macro) -- enough for synth/STA/gate-sim, NOT for APR.
+#                   Defaults to the env PDK_ROOT, else Docker's /foss/pdks.
 #
-# All three honor an env/command-line override (they use ?=). Depth-independent:
-# this file is common/flow/pdk.mk, so the repo root is two levels up -- found via
+# All vars honor an env/command-line override (?=). Depth-independent: this file
+# is common/flow/pdk.mk, so the repo root is two levels up -- found via
 # $(MAKEFILE_LIST) + $(abspath ...) regardless of which stage dir includes it.
 # =============================================================================
 _REPO_PDK := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../pdk)
+_REPO_REF := $(_REPO_PDK)/sky130A/libs.ref
 
-# --- std-cell PDK root: use the in-repo pdk/ only if the std cells are there ---
-ifneq ($(wildcard $(_REPO_PDK)/sky130A/libs.ref/sky130_fd_sc_hd),)
-  PDK_ROOT := $(_REPO_PDK)
-  $(info >> using in-repo PDK std cells: $(PDK_ROOT))
+# External full PDK root -- APR only. NOT flipped to the in-repo subset.
+PDK_ROOT ?= /foss/pdks
+
+# --- std cells: prefer the in-repo vendored subset (synth/STA/gate-sim/power) ---
+ifneq ($(wildcard $(_REPO_REF)/sky130_fd_sc_hd),)
+  STD_CELL_DIR ?= $(_REPO_REF)/sky130_fd_sc_hd
+  $(info >> using in-repo std cells: $(STD_CELL_DIR))
 else
-  PDK_ROOT ?= /foss/pdks
+  STD_CELL_DIR ?= $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd
 endif
 
-# --- SRAM macro dir: prefer the in-repo vendored copy, independent of PDK_ROOT --
-_REPO_SRAM := $(_REPO_PDK)/sky130A/libs.ref/sky130_sram_macros
-ifneq ($(wildcard $(_REPO_SRAM)),)
-  SRAM_MACRO_DIR ?= $(_REPO_SRAM)
+# --- SRAM macro: prefer the in-repo vendored copy, independent of PDK_ROOT ---
+ifneq ($(wildcard $(_REPO_REF)/sky130_sram_macros),)
+  SRAM_MACRO_DIR ?= $(_REPO_REF)/sky130_sram_macros
   $(info >> using in-repo SRAM macros: $(SRAM_MACRO_DIR))
 else
   SRAM_MACRO_DIR ?= $(PDK_ROOT)/sky130A/libs.ref/sky130_sram_macros
