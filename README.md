@@ -89,9 +89,9 @@ make smoke          # push a tiny design through the WHOLE flow to prove setup
 
 When `make smoke` prints `SMOKE TEST PASSED`, you're ready for HW1.
 
-> **No Docker?** On Linux you can use a conda environment instead (no root):
-> `bash env/conda/setup.sh && make smoke EDA_ENV=conda`. Same tools, same PDK.
-> See [env/README.md](env/README.md).
+> **No Docker?** On Linux a conda env (no root) covers the front-end (HW1/HW2
+> sim, Yosys): `bash env/conda/setup.sh && make smoke EDA_ENV=conda`. Use Docker
+> for the back-end (STA/power/APR). See [env/README.md](env/README.md).
 
 Full walkthrough (including the browser-based GUI for GTKWave/KLayout):
 [docs/00-getting-started.md](docs/00-getting-started.md).

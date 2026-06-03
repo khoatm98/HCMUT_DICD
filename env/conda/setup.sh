@@ -11,7 +11,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ENV_NAME="${1:-hcmut-eda}"
-PROFILE="${PROFILE:-full}"           # full | frontend
+PROFILE="${PROFILE:-frontend}"       # frontend (reliable, default) | full (EXPERIMENTAL back-end)
 
 case "$PROFILE" in
     frontend) YML="$HERE/environment-frontend.yml" ;;
@@ -37,9 +37,11 @@ if [ "$SOLVER" = conda ]; then
     echo "   (or install Miniforge, which ships the fast 'mamba')."
 fi
 if [ "$PROFILE" = full ]; then
-    echo "   The FULL profile downloads several GB (OpenROAD/Magic/KLayout + the"
-    echo "   SKY130 PDK). This takes a while on first run. For HW1/HW2 only, use:"
-    echo "       PROFILE=frontend bash env/conda/setup.sh"
+    echo "   WARNING: the FULL profile pulls the litex-hub back-end (OpenROAD/Magic/"
+    echo "   KLayout/Netgen + ~1-2 GB SKY130 PDK). These pin old boost/qt/ruby and"
+    echo "   OFTEN FAIL TO SOLVE. If it does, that's expected -- use the Docker path"
+    echo "   for the back-end (HW3 STA, HW5 APR) instead. The front-end profile is"
+    echo "   the supported conda setup."
 fi
 
 if conda env list | grep -qE "^[[:space:]]*$ENV_NAME[[:space:]]"; then

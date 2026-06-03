@@ -1,23 +1,25 @@
 # =============================================================================
-# HCMUT_DICD conda environment -- FRONT-END profile (small + fast).
+# HCMUT_DICD conda environment -- FRONT-END profile (reliable + fast).
 #
-# Just the simulation/lint tools needed for HW1 and HW2 (no PDK, no back-end
-# tools), so you can start immediately without the multi-GB full install.
+# Pure conda-forge, so it solves cleanly and quickly. Covers everything you
+# need for HW1 and HW2 (simulation + waveforms) and HW3 synthesis (Yosys).
 #
-# Create it with:   PROFILE=frontend bash env/conda/setup.sh
-# Later, add the rest (synth/STA/APR + SKY130 PDK) for HW3+ with:
-#                    bash env/conda/setup.sh          # full profile, same env
+# This is the DEFAULT conda profile:
+#     bash env/conda/setup.sh
+#
+# For the heavy back-end (OpenSTA, OpenROAD/APR, Magic/Netgen/KLayout) use the
+# Docker path -- the conda builds of those tools frequently fail to solve.
 # =============================================================================
 name: hcmut-eda
 
 channels:
-  - litex-hub
   - conda-forge
   - nodefaults
 
 dependencies:
-  - python=3.11
+  - python>=3.9
   - make
-  - iverilog
-  - verilator
-  - gtkwave
+  - iverilog       # HW1, HW2 simulation
+  - verilator      # HW1, HW2 fast simulation + lint
+  - gtkwave        # waveforms
+  - yosys          # HW3 synthesis to SKY130 gates

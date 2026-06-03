@@ -119,14 +119,15 @@ in your user space. **Linux x86_64 only** (on Windows, use WSL2 then follow
 this; on macOS prefer Docker).
 
 ```bash
-# install Miniconda once: https://docs.conda.io/projects/miniconda/
-bash env/conda/setup.sh                 # creates the 'hcmut-eda' env (+ SKY130 PDK)
+# install Miniforge once (ships the fast 'mamba'): https://github.com/conda-forge/miniforge
+bash env/conda/setup.sh                 # creates the 'hcmut-eda' env (front-end tools)
 make healthcheck EDA_ENV=conda
-make smoke       EDA_ENV=conda          # front-end smoke (sim + synth + STA)
+make smoke       EDA_ENV=conda          # simulation smoke (Icarus + Verilator)
 ```
 
-Add `EDA_ENV=conda` to any course command, or `export EDA_ENV=conda` once. APR
-(HW5) on conda uses OpenROAD directly — see [env/conda/README.md](../env/conda/README.md).
+The conda path reliably covers the **front-end** (HW1/HW2 sim, Yosys). For the
+**back-end** (HW3 STA, HW4 power, HW5 APR) use Docker — the conda builds of those
+tools often won't solve. Details: [env/conda/README.md](../env/conda/README.md).
 
 ## 5. Where to go next
 
