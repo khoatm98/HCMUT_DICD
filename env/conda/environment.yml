@@ -1,0 +1,55 @@
+# =============================================================================
+# HCMUT_DICD EDA environment (conda path) -- a no-Docker, no-root install of the
+# whole open-source toolchain, for Linux x86_64 machines (lab PCs, servers, HPC)
+# where Docker is unavailable or not allowed.
+#
+# Create it with:   bash env/conda/setup.sh        (from the repo root)
+# Then run flows:   make smoke EDA_ENV=conda
+#
+# NOTE: versions are intentionally UNPINNED here so the solver picks a mutually
+# compatible set on first install. For a reproducible cohort, freeze them once:
+#     conda env export -n hcmut-eda > env/conda/conda-lock.yml
+# and distribute that lock file. See env/conda/README.md.
+# =============================================================================
+name: hcmut-eda
+
+channels:
+  - litex-hub          # conda-eda: prebuilt yosys/openroad/magic/netgen/klayout + sky130 PDK
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  # ---- base ----
+  - python=3.11
+  - pip
+  - make
+
+  # ---- simulation + waveforms (front-end: HW1, HW2) ----
+  - iverilog
+  - verilator
+  - gtkwave
+
+  # ---- synthesis (HW3) ----
+  - yosys
+
+  # ---- static timing / power (HW3, HW4) ----
+  # OpenSTA ships standalone as 'opensta' on litex-hub; if your channel snapshot
+  # lacks it, the STA scripts also run inside 'openroad' (which embeds OpenSTA).
+  - opensta
+
+  # ---- physical implementation + signoff (HW5) ----
+  - openroad         # floorplan/place/CTS/route engine (also provides STA)
+  - magic            # DRC + layout
+  - netgen           # LVS
+  - klayout          # GDS viewer + DRC
+
+  # ---- SKY130 PDK (baked into the env under $CONDA_PREFIX/share/pdk) ----
+  - open_pdks.sky130a
+
+  # ---- APR orchestration (optional, advanced) ----
+  # LibreLane's supported no-Docker path is Nix; the pip install drives the
+  # conda-provided tools that are on PATH. HW5 documents both this and the
+  # OpenROAD-flow-scripts route. Uncomment to try it:
+  - pip:
+      - ciel           # SKY130/GF180 PDK manager (alt to the conda PDK package)
+      # - librelane    # optional; uses the tools already on PATH

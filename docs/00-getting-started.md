@@ -111,6 +111,23 @@ GUI tools directly from `make shell`.)
 
 ---
 
+## Alternative: conda instead of Docker (Linux, no root)
+
+If Docker is unavailable or not allowed on your machines (locked-down lab, HPC,
+no admin rights), use the conda path instead — same tools, same PDK, installed
+in your user space. **Linux x86_64 only** (on Windows, use WSL2 then follow
+this; on macOS prefer Docker).
+
+```bash
+# install Miniconda once: https://docs.conda.io/projects/miniconda/
+bash env/conda/setup.sh                 # creates the 'hcmut-eda' env (+ SKY130 PDK)
+make healthcheck EDA_ENV=conda
+make smoke       EDA_ENV=conda          # front-end smoke (sim + synth + STA)
+```
+
+Add `EDA_ENV=conda` to any course command, or `export EDA_ENV=conda` once. APR
+(HW5) on conda uses OpenROAD directly — see [env/conda/README.md](../env/conda/README.md).
+
 ## 5. Where to go next
 
 - **HW1** — [hw/hw1-alu/](../hw/hw1-alu/): build the Q6.10 ALU and learn the

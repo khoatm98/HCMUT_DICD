@@ -1,72 +1,87 @@
 # =============================================================================
 # HCMUT_DICD -- top-level command dispatcher.
 #
-# Almost everything runs INSIDE the pinned EDA container, so the only thing you
-# need on the host is Docker. See docs/00-getting-started.md.
+# Two ways to get the toolchain (pick with EDA_ENV):
+#   EDA_ENV=docker  (default)  run everything inside the pinned EDA container
+#   EDA_ENV=conda              run in a local conda env (Linux; no Docker/root)
+#   EDA_ENV=native             tools already on your PATH (advanced)
+#
+# Examples:
+#   make image-pull && make smoke              # Docker
+#   bash env/conda/setup.sh && make smoke EDA_ENV=conda
 # =============================================================================
 SHELL := /bin/bash
 
-# Pick up env/.env automatically if the student created one.
-ENV_FILE    := $(wildcard env/.env)
-COMPOSE_ENV := $(if $(ENV_FILE),--env-file env/.env,)
-COMPOSE     := docker compose $(COMPOSE_ENV) -f env/docker-compose.yml
-EDA_IMAGE   ?= hpretl/iic-osic-tools:2026.05
+EDA_ENV   ?= docker
+CONDA_ENV ?= hcmut-eda
+EDA_IMAGE ?= hpretl/iic-osic-tools:2026.05
 
-# Run a shell command inside the container, at the repo root.
-IN_CONTAINER = $(COMPOSE) run --rm eda bash -lc
+# ---- Docker plumbing ----
+ENV_FILE    := $(wildcard env/docker/.env)
+COMPOSE_ENV := $(if $(ENV_FILE),--env-file env/docker/.env,)
+COMPOSE     := docker compose $(COMPOSE_ENV) -f env/docker/docker-compose.yml
+
+# ---- RUN: how to execute a shell command in the selected environment ----
+ifeq ($(EDA_ENV),docker)
+  RUN          = $(COMPOSE) run --rm eda bash -lc
+  SMOKE_TARGET = all
+else ifeq ($(EDA_ENV),conda)
+  RUN          = conda run --no-capture-output -n $(CONDA_ENV) bash -lc
+  SMOKE_TARGET = front
+else                       # native
+  RUN          = bash -lc
+  SMOKE_TARGET = front
+endif
 
 .DEFAULT_GOAL := help
 
 .PHONY: help
 help:
-	@echo "HCMUT_DICD -- open-source RTL-to-GDSII course"
+	@echo "HCMUT_DICD -- open-source RTL-to-GDSII course   (EDA_ENV=$(EDA_ENV))"
 	@echo ""
-	@echo "Environment (host needs only Docker):"
-	@echo "  make image-pull   Pull the pinned EDA image ($(EDA_IMAGE))"
-	@echo "  make shell        Interactive shell inside the container"
-	@echo "  make env-up       Start the browser (noVNC) desktop for GUI tools"
-	@echo "  make env-down     Stop the desktop"
-	@echo "  make healthcheck  Print every tool's version (verify the setup)"
+	@echo "Docker environment:"
+	@echo "  make image-pull    Pull the pinned EDA image ($(EDA_IMAGE))"
+	@echo "  make shell         Interactive shell inside the container"
+	@echo "  make env-up        Start the browser (noVNC) desktop for GUI tools"
+	@echo "  make env-down      Stop the desktop"
 	@echo ""
-	@echo "Flow:"
-	@echo "  make smoke        One-command toolchain smoke test (tiny design -> GDS)"
-	@echo "  make hw1 ... hw5  Run a homework's default target in-container"
-	@echo "  make final        Run the final project's default target"
-	@echo "  make clean        Remove build/run artifacts repo-wide"
+	@echo "Conda environment (Linux; no Docker):"
+	@echo "  bash env/conda/setup.sh        Create the conda env 'hcmut-eda'"
+	@echo "  make <target> EDA_ENV=conda    Run any target in the conda env"
+	@echo ""
+	@echo "Common (respect EDA_ENV):"
+	@echo "  make healthcheck   Print every tool's version (verify the setup)"
+	@echo "  make smoke         Toolchain smoke test (Docker: full; conda: front-end)"
+	@echo "  make hw1 ... hw5   Run a homework's default target"
+	@echo "  make final         Run the final project's default target"
+	@echo "  make clean         Remove build/run artifacts repo-wide"
 
-.PHONY: image-pull
+# ---- Docker-only targets ----
+.PHONY: image-pull shell env-up env-down
 image-pull:
 	docker pull $(EDA_IMAGE)
-
-.PHONY: shell
 shell:
 	$(COMPOSE) run --rm --service-ports eda bash
-
-.PHONY: env-up
 env-up:
 	$(COMPOSE) up -d
 	@echo "Desktop: http://localhost:$${NOVNC_PORT:-8888}   (VNC password: $${VNC_PW:-hcmut})"
-
-.PHONY: env-down
 env-down:
 	$(COMPOSE) down
 
-.PHONY: healthcheck
+# ---- Conda helper ----
+.PHONY: conda-setup
+conda-setup:
+	bash env/conda/setup.sh $(CONDA_ENV)
+
+# ---- Environment-agnostic flow targets ----
+.PHONY: healthcheck smoke hw1 hw2 hw3 hw4 hw5 final clean
 healthcheck:
-	$(IN_CONTAINER) 'bash env/scripts/healthcheck.sh'
-
-.PHONY: smoke
+	$(RUN) 'bash env/scripts/healthcheck.sh'
 smoke:
-	$(IN_CONTAINER) 'cd smoke && make all'
-
-.PHONY: hw1 hw2 hw3 hw4 hw5
+	$(RUN) 'cd smoke && make $(SMOKE_TARGET)'
 hw1 hw2 hw3 hw4 hw5:
-	$(IN_CONTAINER) 'cd hw/$@-* && make'
-
-.PHONY: final
+	$(RUN) 'cd hw/$@-* && make'
 final:
-	$(IN_CONTAINER) 'cd final-project && make'
-
-.PHONY: clean
+	$(RUN) 'cd final-project && make'
 clean:
 	bash scripts/clean-all.sh

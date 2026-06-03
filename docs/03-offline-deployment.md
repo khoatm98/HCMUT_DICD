@@ -85,6 +85,31 @@ The same `docker-compose.yml` now works online or offline (it reads
 
 ---
 
+## Option C — conda, offline (no Docker)
+
+If you use the conda path (`env/conda/`), there's no image to mirror. Two ways
+to avoid per-student internet:
+
+**C1 — `conda-pack` a solved environment into a tarball (simplest):**
+
+```bash
+# admin, once, on a connected Linux machine:
+bash env/conda/setup.sh
+conda install -n hcmut-eda conda-pack -c conda-forge
+conda pack -n hcmut-eda -o hcmut-eda.tar.gz      # ~few GB, PDK included
+
+# each student (no internet):
+mkdir -p ~/hcmut-eda && tar -xzf hcmut-eda.tar.gz -C ~/hcmut-eda
+source ~/hcmut-eda/bin/activate
+conda-unpack
+export EDA_ENV=conda        # then: make smoke EDA_ENV=conda
+```
+
+**C2 — mirror the channels on the LAN:** mirror `litex-hub` + `conda-forge`
+(e.g. with `conda-mirror` or a local file/HTTP channel) and point conda at them
+with `--channel file:///srv/channels/...`. Pin builds via the exported
+`conda-lock.yml` so every student resolves the identical versions.
+
 ## Mirroring the repository itself
 
 The course repo is small (text + RTL). Distribute it by any means: a campus Git

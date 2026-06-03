@@ -25,10 +25,15 @@ VERILATOR_FLAGS := -Wno-TIMESCALEMOD -Wno-BLKSEQ
 include $(COMMON)/sim_iverilog.mk
 include $(COMMON)/sim_verilator.mk
 
-.PHONY: all banner stage-iv stage-vl stage-synth stage-sta stage-apr stage-gds \
-        summary synth sta apr clean
+.PHONY: all front banner stage-iv stage-vl stage-synth stage-sta stage-apr stage-gds \
+        summary summary-front synth sta apr clean
 
+# Full flow (Docker default): sim -> synth -> STA -> APR -> GDS
 all: banner stage-iv stage-vl stage-synth stage-sta stage-apr stage-gds summary
+
+# Front-end only (conda default): sim -> synth -> STA.
+# APR/GDS need the LibreLane orchestrator (Docker) or the HW5 OpenROAD route.
+front: banner stage-iv stage-vl stage-synth stage-sta summary-front
 
 banner:
 	@echo "============================================================"
@@ -62,6 +67,13 @@ summary:
 	@echo ""
 	@echo "============================================================"
 	@echo " SMOKE TEST PASSED -- the toolchain is ready for HW1."
+	@echo "============================================================"
+
+summary-front:
+	@echo ""
+	@echo "============================================================"
+	@echo " FRONT-END SMOKE PASSED (sim + synth + STA)."
+	@echo " APR/GDS run under Docker ('make smoke') or in HW5 (OpenROAD)."
 	@echo "============================================================"
 
 synth: $(NETLIST)

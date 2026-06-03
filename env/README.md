@@ -1,27 +1,39 @@
 # Environment (`env/`)
 
-This is the **only thing you install**: Docker, then one pinned image that
-already contains every tool the course uses **and** the SKY130 PDK.
+The course runs entirely on open-source tools. Pick **one** of two setups —
+both give you the same tools and the same SKY130 PDK, and both are driven by the
+top-level `Makefile`.
+
+| Path | When to use | Folder |
+|------|-------------|--------|
+| **Docker** (default) | Docker is available; you want the most reproducible, cross-OS setup with a built-in browser GUI for GTKWave/KLayout. | [`env/docker/`](docker/) |
+| **Conda** | Docker is blocked/unavailable (locked-down lab, HPC, no admin). **Linux x86_64.** | [`env/conda/`](conda/) |
+
+The Makefile selects the path with `EDA_ENV`:
+
+```bash
+make smoke                 # EDA_ENV=docker (default)
+make smoke EDA_ENV=conda   # use the conda env instead
+```
+
+Shared, environment-independent bits live here:
 
 | File | What it is |
 |------|------------|
-| `docker-compose.yml` | Defines the `eda` service (the container) with the repo mounted at `/foss/designs/HCMUT_DICD`. |
-| `.env.example` | Copy to `env/.env` to override the image tag, ports, or the VNC password. |
-| `pdk/pdk.lock` | Records the exact PDK variant the course standardizes on (`sky130A` / `sky130_fd_sc_hd`). |
-| `scripts/healthcheck.sh` | Prints every tool's version from inside the container (used by `make healthcheck`). |
+| `scripts/healthcheck.sh` | Prints every tool's version (works in either env). |
+| `pdk/pdk.lock` | The exact PDK variant the course standardizes on. |
 
-## Quick start (from the repo root)
+## Quick start
 
+**Docker:**
 ```bash
-make image-pull     # pull the pinned image once (~4 GB; one time)
-make healthcheck    # confirm every tool is callable
-make smoke          # run a tiny design through the WHOLE flow
-make shell          # drop into the course shell when you're ready to work
+make image-pull && make healthcheck && make smoke
+```
+**Conda (Linux):**
+```bash
+bash env/conda/setup.sh && make healthcheck EDA_ENV=conda && make smoke EDA_ENV=conda
 ```
 
-GUI tools (GTKWave, KLayout) work through a **browser desktop**: run
-`make env-up`, then open <http://localhost:8888> (password: `hcmut`). No XQuartz
-or VcXsrv setup required. See [../docs/00-getting-started.md](../docs/00-getting-started.md).
-
-For air-gapped / low-bandwidth campuses, see
+GUI tools, offline mirroring, and troubleshooting:
+[../docs/00-getting-started.md](../docs/00-getting-started.md),
 [../docs/03-offline-deployment.md](../docs/03-offline-deployment.md).

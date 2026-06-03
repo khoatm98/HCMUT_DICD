@@ -26,7 +26,8 @@ __pycache__/
 *.pyc
 
 # ---- Local environment / secrets ----
-env/.env
+env/docker/.env
+env/conda/conda-lock.yml
 
 # ---- OS / editor cruft ----
 .DS_Store
