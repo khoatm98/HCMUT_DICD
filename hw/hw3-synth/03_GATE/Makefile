@@ -47,6 +47,10 @@ SDF          := ../02_SYN/$(BUILD)/conv.sdf
 # real SRAM->MAC delay fits (a 10 ns clock corrupts captures with real delays).
 CELLS_TIMING := $(BUILD)/sky130_fd_sc_hd_timing.v
 SDF_CLK_HALF ?= 25
+# std-cell-only SDF for the sim: the SRAM is a BEHAVIORAL model here (no structural
+# clk0->dout0[n] paths), so its CELL block is stripped -- iverilog can't annotate it
+# and would abort the whole SDF parse (see common/flow/sdf_strip_macros.awk).
+SIM_SDF      := $(BUILD)/conv.sim.sdf
 
 .DEFAULT_GOAL := gl-sim
 .PHONY: gl-sim gl-sim-sdf prep netlist clean
@@ -74,31 +78,38 @@ gl-sim: prep netlist
 		|| { echo ">> gate-level sim FAIL (netlist != golden)"; exit 1; }
 
 # ---- timing-annotated (SDF) gate-level sim (cell-arc delays) ----
-# 1) get the SDF from 02_SYN; 2) patch the one malformed (unused) bleeder cell into
-#    a build-copy so the timing models elaborate; 3) build with real cell delays
-#    (-gspecify -ginterconnect, no UNIT_DELAY) and back-annotate the SDF via
-#    $sdf_annotate (in the TB) at a slow clock (CLK_HALF).
-# NOTE: this is the INSTRUCTIVE part -- unlike the functional gl-sim, the timing
-# sim exposes how real cell delays affect capture. Pre-layout SDF has cell-arc
-# delays only (no wire RC -- those arrive at APR/HW5), and the behavioral SRAM
-# model's timing differs from its .lib, so some pixels may mismatch; read
-# build/sim/conv_gl_sdf.log to see where/why.
+# 1) get the SDF from 02_SYN and strip the behavioral SRAM's CELL block;
+# 2) patch the one malformed (unused) bleeder cell into a build-copy so the timing
+#    models elaborate; 3) build with real cell delays (-gspecify -ginterconnect,
+#    no UNIT_DELAY) and back-annotate the SDF via $sdf_annotate (in the TB) at a
+#    slow clock (CLK_HALF, so the real SRAM->MAC delay fits).
+# Pre-layout SDF carries cell-arc delays only (no wire RC -- those arrive at
+# APR/HW5); iverilog applies those and ignores INTERCONNECT/TIMINGCHECK. Expect
+# RESULT: PASS -- it proves the netlist still computes correctly with real delays.
 $(SDF):
 	$(MAKE) -C ../02_SYN sdf
+
+# std-cell-only SDF for the sim (strip the behavioral SRAM's CELL block)
+$(SIM_SDF): $(SDF) | prep
+	awk -f $(COMMON)/flow/sdf_strip_macros.awk $(SDF) > $(SIM_SDF)
 
 $(CELLS_TIMING): $(SCL)/verilog/sky130_fd_sc_hd.v | prep
 	sed '/__lpflow_bleeder/,/endmodule/{/SHORT *=> *VPWR/d}' $< > $@
 
-gl-sim-sdf: prep netlist $(SDF) $(CELLS_TIMING)
+gl-sim-sdf: prep netlist $(SIM_SDF) $(CELLS_TIMING)
 	iverilog -g2012 -gspecify -ginterconnect -DGL_NETLIST -DCLK_HALF=$(SDF_CLK_HALF) \
-	  -DSDF_FILE='"$(abspath $(SDF))"' \
+	  -DSDF_FILE='"$(abspath $(SIM_SDF))"' \
 	  -I$(SCL)/verilog -I$(GOLDEN_DIR) -o $(BUILD)/conv_gl_sdf.vvp \
 	  $(abspath $(CELLS_TIMING)) $(abspath $(SCL)/verilog/primitives.v) \
 	  $(abspath $(SRAM_MODEL)) $(abspath $(NETLIST)) $(abspath $(TB))
-	cd $(BUILD) && vvp conv_gl_sdf.vvp 2>&1 | tee sim/conv_gl_sdf.log | grep -vE "port[12] =|Could not find net" || true
+	@# iverilog applies the cell-arc IOPATH delays; it can't model SDF INTERCONNECT
+	@# (net delays -- which are ~0 pre-layout anyway) or TIMINGCHECKs, so those
+	@# warnings are expected and filtered from the console (full log kept).
+	cd $(BUILD) && vvp conv_gl_sdf.vvp 2>&1 | tee sim/conv_gl_sdf.log \
+	  | grep -vE "port[12] =|Could not find net|intermodpath|Timing checks are not supported" || true
 	@grep -q "RESULT: PASS" $(BUILD)/sim/conv_gl_sdf.log \
-		&& echo ">> SDF gate-level sim PASS (timing-annotated)" \
-		|| echo ">> SDF gate-level sim: timing-induced mismatches -- inspect $(BUILD)/sim/conv_gl_sdf.log"
+		&& echo ">> SDF gate-level sim PASS (cell-arc timing annotated)" \
+		|| { echo ">> SDF gate-level sim FAIL -- inspect $(BUILD)/sim/conv_gl_sdf.log"; exit 1; }
 
 clean:
 	rm -rf $(BUILD)
