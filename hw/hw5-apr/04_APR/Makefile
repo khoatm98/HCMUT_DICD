@@ -12,7 +12,10 @@
 # OpenROAD-flow-scripts note in INSTRUCTIONS.md.
 # =============================================================================
 COMMON   := ../../../common/flow
-CONV_DIR := ../../../../common/rtl/conv      # relative to src/ (04_APR/src -> repo root)
+# relative to src/ (04_APR/src -> repo root). NOTE: no trailing inline comment on
+# this `:=` line -- trailing spaces would become part of the value and split the
+# `ln` args (the symlink target path must be a single shell token).
+CONV_DIR := ../../../../common/rtl/conv
 
 # The conv engine instantiates one SRAM hard macro; APR needs its .lef/.gds/.lib.
 # pdk.mk resolves SRAM_MACRO_DIR -- it prefers the in-repo vendored macro under
@@ -30,7 +33,7 @@ SC_LEF     := $(SCL)/lef/sky130_fd_sc_hd.lef
 MACRO_LEF  := $(SRAM_MACRO_DIR)/lef/$(SRAM).lef
 MACRO_GDS  := $(SRAM_MACRO_DIR)/gds/$(SRAM).gds
 MAGIC_TECH := $(PDK_ROOT)/sky130A/libs.tech/magic/sky130A.tech
-SDC        := ../../hw3-synth/02_SYN/conv.sdc           # reuse the conv engine constraints
+SDC        := ../../hw3-synth/02_SYN/conv.sdc
 CONV_RTL   := ../../../common/rtl/conv
 SRAM_MODEL := $(CONV_RTL)/sky130_sram_1kbyte_1rw1r_32x256_8.v
 NETLIST    := build/conv_netlist.v
