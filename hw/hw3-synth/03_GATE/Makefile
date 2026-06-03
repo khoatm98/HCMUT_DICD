@@ -49,7 +49,7 @@ CELLS_TIMING := $(BUILD)/sky130_fd_sc_hd_timing.v
 SDF_CLK_HALF ?= 25
 
 .DEFAULT_GOAL := gl-sim
-.PHONY: gl-sim gl-sim-sdf prep clean
+.PHONY: gl-sim gl-sim-sdf prep netlist clean
 
 # Stage the run directory: build/ with a golden symlink + a sim subdir so the
 # testbench's bare relative paths resolve when we run the sim from inside build/.
@@ -57,8 +57,13 @@ prep:
 	@mkdir -p $(BUILD)/sim
 	@ln -sfn ../$(GOLDEN_DIR) $(BUILD)/golden
 
+# Always (re)synthesize via 02_SYN so gate sim uses the CURRENT netlist for this
+# 01_RTL -- never a stale copy. 02_SYN re-runs Yosys only if the RTL changed.
+netlist:
+	@$(MAKE) --no-print-directory -C ../02_SYN synth
+
 # ---- gate-level equivalence sim ----
-gl-sim: prep
+gl-sim: prep netlist
 	iverilog -g2012 -DGL_NETLIST -DFUNCTIONAL -DUNIT_DELAY="#1" \
 	  -I$(SCL)/verilog -I$(GOLDEN_DIR) \
 	  -o $(BUILD)/conv_gl.vvp \
@@ -84,7 +89,7 @@ $(SDF):
 $(CELLS_TIMING): $(SCL)/verilog/sky130_fd_sc_hd.v | prep
 	sed '/__lpflow_bleeder/,/endmodule/{/SHORT *=> *VPWR/d}' $< > $@
 
-gl-sim-sdf: prep $(SDF) $(CELLS_TIMING)
+gl-sim-sdf: prep netlist $(SDF) $(CELLS_TIMING)
 	iverilog -g2012 -gspecify -ginterconnect -DGL_NETLIST -DCLK_HALF=$(SDF_CLK_HALF) \
 	  -DSDF_FILE='"$(abspath $(SDF))"' \
 	  -I$(SCL)/verilog -I$(GOLDEN_DIR) -o $(BUILD)/conv_gl_sdf.vvp \

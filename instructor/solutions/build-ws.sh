@@ -24,6 +24,10 @@ ln -s "$REPO/common" "$WS/common"               # relative includes resolve here
 ln -s "$REPO/pdk"    "$WS/pdk"                   # pdk.mk resolves PDK_ROOT/STD_CELL_DIR
                                                  # via a repo-relative path -> needs ws/pdk
 cp -r "$REPO/hw" "$REPO/final-project" "$WS/"
+# Strip regenerable build artifacts copied from the repo working tree, so the ws
+# synthesizes FRESH from the solution RTL. Otherwise a stale netlist (e.g. one
+# synthesized from the student stub) would be reused and the flow would "fail".
+find "$WS" -depth -type d \( -name build -o -name obj_dir -o -name runs \) -exec rm -rf {} + 2>/dev/null || true
 
 # --- drop reference solutions over the student stubs (hw1-hw4 designs) ---
 cp "$REPO/common/rtl/alu/alu.v"          "$WS/hw/hw1-alu/01_RTL/alu.v"
