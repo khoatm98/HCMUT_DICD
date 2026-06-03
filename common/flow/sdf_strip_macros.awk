@@ -9,6 +9,10 @@ function nopen(s,  t){ t=s; return gsub(/\(/,"",t) }
 function nclose(s,  t){ t=s; return gsub(/\)/,"",t) }
 BEGIN { if (pat == "") pat = "sram"; incell = 0; depth = 0; buf = ""; drop = 0 }
 {
+  # Drop optional header conditions OpenSTA writes with an empty typ field
+  # ("1.800::1.800"), which iverilog flags as "Chosen value not defined".
+  # They're just metadata -- not used for IOPATH annotation.
+  if (incell == 0 && $0 ~ /\((VOLTAGE|PROCESS|TEMPERATURE)[[:space:]]/) next
   if (incell == 0 && $0 ~ /\(CELL([[:space:]]|$)/) { incell = 1; depth = 0; buf = ""; drop = 0 }
   if (incell) {
     buf = buf $0 ORS
