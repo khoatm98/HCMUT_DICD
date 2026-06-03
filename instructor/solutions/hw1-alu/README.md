@@ -2,6 +2,22 @@
 
 > **Do not distribute to students.** Release the reference RTL only after grading.
 
+## Layout
+
+HW1 uses CVSD-style numbered stage dirs:
+- `hw/hw1-alu/00_TB/`        — `alu_tb.v` + `golden/` (the COMMITTED public patterns).
+- `hw/hw1-alu/01_RTL/`       — student starter stub `alu.v` + functional-sim `Makefile`.
+- `instructor/solutions/hw1-alu/tools/gen_vectors.py` — the PRIVATE generator (here).
+
+## Golden patterns
+
+The PUBLIC test patterns in `hw/hw1-alu/00_TB/golden/` are pre-committed (4256
+vectors, default seed) and are what students simulate against — students never
+run any generator. Regenerate HIDDEN grading patterns with the private generator
+(`instructor/solutions/hw1-alu/tools/gen_vectors.py`) using a different `--seed`,
+e.g. `python3 gen_vectors.py --seed 1234 --outdir /tmp/hidden`, then point the TB
+at that dir to defeat hard-coded released vectors.
+
 ## Reference solution
 
 The complete, correct ALU is the canonical
@@ -9,10 +25,10 @@ The complete, correct ALU is the canonical
 reuse). To confirm it passes the released testbench:
 
 ```bash
-cd hw/hw1-alu
-make vectors
-make ref            # compiles common/rtl/alu/alu.v against tb/alu_tb.v
-# expect: "Checked 4256 vectors, 0 mismatch(es)."  /  "RESULT: PASS"  /  ">> reference ALU PASS"
+cd hw/hw1-alu/01_RTL
+make vsim RTL=../../../common/rtl/alu/alu.v   # Verilator (fast)
+make ref                                      # Icarus: common/rtl/alu/alu.v vs ../00_TB/alu_tb.v
+# expect: "Checked 4256 vectors, 0 mismatch(es)."  /  "RESULT: PASS"
 ```
 
 (There is intentionally no second copy of the solution here — keeping one
@@ -21,16 +37,18 @@ canonical file avoids drift between "the reference" and "what HW2 reuses".)
 ## Grading a submission
 
 ```bash
-# with the student's rtl/alu.v in place:
-make vectors        # or regenerate with a different seed for hidden testing
-make sim            # -> RESULT: PASS / FAIL ; non-zero exit on FAIL
+# with the student's 01_RTL/alu.v in place:
+cd hw/hw1-alu/01_RTL
+make vsim           # -> RESULT: PASS / FAIL ; non-zero exit on FAIL (Verilator)
+make sim            # same check under Icarus
 make lint           # style/lint points
 ```
 
 ### Hidden testing
-Re-run with a different RNG seed and extra fixed-point corners by editing the
-`rng = random.Random(...)` seed (and/or the `corners` list) in
-`tools/gen_vectors.py`, then `make vectors && make sim`. This defeats hard-coded
+The committed `00_TB/golden/` is the PUBLIC set. For hidden testing, run the
+private `instructor/solutions/hw1-alu/tools/gen_vectors.py` with a different
+`--seed` (and/or extend the `corners` list) into a scratch dir, then point the
+testbench's `$readmemh`/`-I` golden path at that dir. This defeats hard-coded
 released vectors.
 
 ## Expected results

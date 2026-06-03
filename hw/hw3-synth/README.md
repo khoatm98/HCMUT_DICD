@@ -11,39 +11,53 @@ timing. This is the design that HW5 places-and-routes to GDSII.
 3. [INSTRUCTIONS.md](INSTRUCTIONS.md) — step-by-step (RTL + SDC, then synth/STA/gate-sim).
 4. [RUBRIC.md](RUBRIC.md) — how it's graded.
 
-## Quick commands (run from this folder)
+## Stage directories
+This module is organized into numbered ASIC-flow stages:
+
+| Stage | What lives there |
+|-------|------------------|
+| `00_TB/` | the self-checking testbench + `golden/` (committed public test patterns the TB reads) |
+| `01_RTL/` | the engine you implement (`conv_engine.v`) + the functional-sim Makefile |
+| `02_SYN/` | synthesis Makefile + `conv.sdc` timing constraints |
+| `03_GATE/` | gate-level (post-synthesis) equivalence-sim Makefile |
+| `artifacts/` | put your submission here (logs, reports, note) |
+
+The test patterns under `00_TB/golden/` are **pre-committed** — you do **not**
+generate them. Just run the sims; the testbench reads them directly.
+
+## Quick commands
 ```bash
-make golden     # generate stimulus + expected from the Python reference model
+# functional simulation (front end):
+cd 01_RTL
 make vsim       # Verilator self-checking sim (fast)   <- iterate with this
 make sim        # Icarus self-checking sim
 make ref        # run the SAME testbench against the reference engine (sanity)
-make wave       # open sim/conv_engine.vcd in GTKWave
+make wave       # open the waveform in GTKWave
 make lint       # Verilator lint of your RTL
 
 # back-end flow (inside the EDA container):
+cd ../02_SYN
 make synth      # Yosys -> build/conv_netlist.v + build/conv_area.rpt
-make sta        # OpenSTA timing using your constraints/conv.sdc
+make sta        # OpenSTA timing using your conv.sdc -> build/conv_sta.rpt
+cd ../03_GATE
 make gl-sim     # gate-level sim of the netlist vs the SAME golden (equivalence)
-make all        # synth + sta + gl-sim
 ```
+Run artifacts land in each stage's `build/` (git-ignored).
 
-## Files
+## Files you edit
 | Path | Edit? | What |
 |------|:----:|------|
-| `rtl/conv_engine.v` | ✅ | the engine you implement (starter stub: COMPUTE TODOs) |
-| `constraints/conv.sdc` | ✅ | timing constraints you write (clock + I/O delays) |
-| `tb/conv_engine_tb.v` | ❌ | self-checking testbench (drives the stream, compares golden) |
-| `tools/gen_golden.py` | ❌ | golden reference model + stimulus/expected generator |
-| `golden/` | — | generated stimulus/expected (`make golden`) |
-| `build/` | — | synthesis netlist + area/STA reports |
-| `artifacts/` | ✅ | put your submission here (logs, reports, note) |
+| `01_RTL/conv_engine.v` | ✅ | the engine you implement (starter stub: COMPUTE TODOs) |
+| `02_SYN/conv.sdc` | ✅ | timing constraints (clock + CVSD-style I/O delays) |
+| `00_TB/conv_engine_tb.v` | ❌ | self-checking testbench (drives the stream, compares golden) |
+| `00_TB/golden/` | ❌ | committed public stimulus/expected the TB reads |
 
 Provided building blocks you reuse (do not edit):
-[`common/rtl/conv/conv_defs.vh`](../../common/rtl/conv/conv_defs.vh) and the
-flow wrappers in [`common/flow/`](../../common/flow/).
+[`common/rtl/conv/conv_defs.vh`](../../../common/rtl/conv/conv_defs.vh) and the
+flow wrappers in [`common/flow/`](../../../common/flow/).
 
 You pass the functional gate when the testbench prints `RESULT: PASS`, and you
 complete HW3 when `make gl-sim` also passes (gate equivalence) and `make sta`
 reports no timing violations. The completed `conv_engine.v` is the canonical
-[`common/rtl/conv/conv_engine.v`](../../common/rtl/conv/conv_engine.v) carried
+[`common/rtl/conv/conv_engine.v`](../../../common/rtl/conv/conv_engine.v) carried
 into HW5 — so write it cleanly.

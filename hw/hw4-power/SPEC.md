@@ -103,21 +103,23 @@ power saved by keeping idle logic from switching.
 ## Verification model
 
 - **Functional.** The self-checking testbench
-  ([`tb/iotdf_tb.v`](tb/iotdf_tb.v)) drives a per-cycle stimulus/expected stream
-  produced by the Python golden model
-  ([`tools/gen_golden.py`](tools/gen_golden.py)) — directed corners (the
-  `"123456789"` CRC, Gray round-trips, LFSR keystream) plus randomized streams —
-  and prints `RESULT: PASS` on zero mismatches.
-- **Power.** [`tb/iotdf_workload_tb.v`](tb/iotdf_workload_tb.v) drives a long
-  mixed-function workload to capture switching activity (a VCD). The flow
-  synthesizes the netlist (baseline and with clock gating), runs gate-level sim
-  to record the VCD, and OpenSTA `report_power` annotates the activity. `make
-  compare` tabulates baseline vs clock-gated **power and area**.
+  ([`00_TB/iotdf_tb.v`](00_TB/iotdf_tb.v)) drives a per-cycle stimulus/expected
+  stream — directed corners (the `"123456789"` CRC, Gray round-trips, LFSR
+  keystream) plus randomized streams — read from the **committed public** vectors
+  in [`00_TB/golden/`](00_TB/golden/), and prints `RESULT: PASS` on zero
+  mismatches.
+- **Power.** [`00_TB/iotdf_workload_tb.v`](00_TB/iotdf_workload_tb.v) drives a
+  long mixed-function workload (the committed [`00_TB/workload/`](00_TB/workload/)
+  stream) to capture switching activity (a VCD). The flow synthesizes the netlist
+  in `02_SYN/` (baseline and with clock gating), runs gate-level sim in `03_GATE/`
+  to record the VCD, and OpenSTA `report_power` annotates the activity in
+  `06_POWER/`. `cd 06_POWER && make compare` tabulates baseline vs clock-gated
+  **power and area**.
 
 ## What "done" means
 
-1. `make vsim` (or `make sim`) prints **`RESULT: PASS`** for all four functions.
-2. `make compare` produces `build/power_base.rpt`, `build/power_cg.rpt`, the area
-   reports, and a filled `artifacts/ppa_compare.md` with a **quantified**
-   before/after power (and area) comparison and a short discussion of clock
-   gating + operand isolation.
+1. `cd 01_RTL && make vsim` (or `make sim`) prints **`RESULT: PASS`** for all four functions.
+2. `cd 06_POWER && make compare` produces `06_POWER/build/power_base.rpt`,
+   `06_POWER/build/power_cg.rpt`, the `02_SYN/build` area reports, and a filled
+   `artifacts/ppa_compare.md` with a **quantified** before/after power (and area)
+   comparison and a short discussion of clock gating + operand isolation.

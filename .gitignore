@@ -8,9 +8,12 @@ sim/
 obj_dir/
 **/obj_dir/
 
-# ---- Generated golden vectors (reproduced deterministically by `make vectors`) ----
-**/golden/*.hex
-**/golden/*.vh
+# NOTE: public golden test patterns under 00_TB/golden/ ARE committed (students
+# get the public patterns; the generators are instructor-private). Only RUN
+# ARTIFACTS are ignored.
+
+# ---- per-stage build directories (01_RTL/build, 02_SYN/build, ...) ----
+**/build/
 
 # ---- Synthesis / STA generated outputs ----
 *.netlist.v
@@ -21,11 +24,9 @@ obj_dir/
 runs/
 **/runs/
 
-# ---- HW5 APR src/ is populated from common/rtl by `make prep` (symlinks) ----
-hw/hw5-apr/src/*.v
-hw/hw5-apr/src/*.vh
-final-project/src/*.v
-final-project/src/*.vh
+# ---- APR src/ dirs are populated from common/rtl by `make prep` (symlinks) ----
+hw/hw5-apr/04_APR/src/*.v
+hw/hw5-apr/04_APR/src/*.vh
 
 # ---- Physical layout (regenerable) ----
 *.gds

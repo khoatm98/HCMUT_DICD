@@ -23,6 +23,6 @@
 
 ## Autograde
 
-Instructors: `make ref` runs the testbench against the reference ALU (expects
-`RESULT: PASS`); the per-student check is `make sim` against the student's
-`rtl/alu.v`. See `instructor/solutions/hw1-alu/`.
+Instructors (from `01_RTL/`): `make ref` runs the testbench against the reference
+ALU (expects `RESULT: PASS`); the per-student check is `make sim` (or `make vsim`)
+against the student's `01_RTL/alu.v`. See `instructor/solutions/hw1-alu/`.

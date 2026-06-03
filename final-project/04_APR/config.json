@@ -1,0 +1,11 @@
+{
+    "DESIGN_NAME": "mimo_detector",
+    "VERILOG_FILES": "dir::../01_RTL/*.v",
+    "VERILOG_INCLUDE_DIRS": ["dir::../01_RTL", "dir::../../common/rtl/alu"],
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 20,
+    "PDK": "sky130A",
+    "FP_CORE_UTIL": 35,
+    "PL_TARGET_DENSITY_PCT": 45,
+    "RUN_LINTER": false
+}

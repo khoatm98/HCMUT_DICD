@@ -1,0 +1,6 @@
+# Put your HW5 submission artifacts here:
+#   - screenshots: floorplan, placement/congestion heatmap, routed layout (KLayout)
+#   - DRC and LVS status (clean / match)
+#   - post-route timing summary (worst slack >= 0)
+#   - your final config.json
+#   - a short write-up relating the layout to the design (flop arrays, multiplier)

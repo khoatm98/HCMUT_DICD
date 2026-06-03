@@ -1,0 +1,11 @@
+# Put your capstone RTL here: mimo_detector.v and any submodules
+# (complex multiply, PED metric, tree-search FSM, ...).
+# You may reuse ideas/modules from common/rtl (e.g. the Q6.10 multiply from the
+# HW1 ALU). The functional-sim targets in this Makefile pick up *.v in THIS
+# directory automatically (RTL := $(wildcard *.v)).
+#
+# Quick start (from this 01_RTL directory):
+#   make vsim     run your detector on the committed dev vectors (Verilator)
+#   make score    PSNR + SER of your detector vs the ground truth
+#   make lint     Verilator lint of your RTL
+# All run artifacts land in build/ (git-ignored).

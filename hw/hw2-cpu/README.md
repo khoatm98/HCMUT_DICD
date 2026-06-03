@@ -10,27 +10,34 @@ optimized in HW4, and placed-and-routed to GDSII in HW5.
 3. [INSTRUCTIONS.md](INSTRUCTIONS.md) — step-by-step (six TODOs).
 4. [RUBRIC.md](RUBRIC.md)
 
-## Quick commands (from this folder)
+This module is organized into CVSD-style stage directories:
+`00_TB/` (testbench + committed `patterns/`) and `01_RTL/` (the `cpu_core.v`
+stub you edit + its Makefile). You work and run from `01_RTL/`.
+
+## Quick commands (from `01_RTL/`)
 ```bash
-make ref            # reference CPU passes all programs (sanity)
+cd 01_RTL
 make vsim PROG=ops  # Verilator self-checking sim (fast) -- iterate with this
 make vsim PROG=mac  # the MAC dot-product showcase
-make                # graded check: Icarus over all programs
+make lint           # Verilator lint of your RTL
+make                # graded check: Icarus over all programs (ops + mac)
 make wave PROG=mac  # waveform in GTKWave
 ```
+The test patterns are **pre-committed** in `00_TB/patterns/` — no assembler or
+Python needed. The Makefile copies the selected program's patterns into
+`01_RTL/build/` before each run.
 
-## Files
+## Layout
 | Path | Edit? | What |
 |------|:----:|------|
-| `rtl/cpu_core.v` | ✅ | the CPU control you implement (6 TODOs) |
-| `tb/cpu_tb.v` | ❌ | self-checking testbench (owns memory, compares to golden) |
-| `tools/asm.py` | ❌ | assembler (`.s` → instruction/data hex) |
-| `tools/iss.py` | ❌ | golden instruction-set simulator |
-| `programs/*.s` | ✅ | test programs (add your own!) |
+| `01_RTL/cpu_core.v` | ✅ | the CPU control you implement (6 TODOs) |
+| `01_RTL/Makefile` | ❌ | functional-sim targets (`sim`/`vsim`/`lint`/`wave`/`ref`/`clean`) |
+| `00_TB/cpu_tb.v` | ❌ | self-checking testbench (owns memory, compares to golden) |
+| `00_TB/patterns/*.hex` | ❌ | committed public patterns (`<prog>.imem/.dmem/.golden`) |
 | `artifacts/` | ✅ | your submission |
 
 Provided building blocks you reuse (do not edit):
 [`common/rtl/alu/alu.v`](../../common/rtl/alu/alu.v) (HW1) and
 [`common/rtl/cpu/regfile.v`](../../common/rtl/cpu/regfile.v).
 
-You pass when `make` prints `ALL PROGRAMS PASS`.
+You pass when `make` (from `01_RTL/`) prints `ALL PROGRAMS PASS`.

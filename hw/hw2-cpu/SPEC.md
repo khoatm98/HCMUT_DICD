@@ -17,7 +17,7 @@ instruction**. The module interface is fixed (the testbench and HW3+ depend on i
 - Reset is **synchronous, active-low**: `pc ← 0`, registers ← 0.
 
 The register file (3 read ports) and the ALU are **provided**; you write the
-datapath control in `rtl/cpu_core.v`.
+datapath control in `01_RTL/cpu_core.v`.
 
 ## Instruction formats (16 bits)
 
@@ -82,15 +82,18 @@ multi-instruction software sequence.)
 
 ## Memory & verification model
 
-Programs are written in assembly (`programs/*.s`), assembled by
-[`tools/asm.py`](tools/asm.py) into an instruction image and a data image, and
-checked against [`tools/iss.py`](tools/iss.py) — a golden instruction-set
-simulator that is the source of truth for correct behavior.
+Each test program is provided as **pre-assembled, committed patterns** in
+`00_TB/patterns/<prog>.{imem,dmem,golden}.hex`: an instruction-memory image, an
+initial data-memory image, and the expected FINAL data memory (the golden,
+computed by a reference instruction-set simulator that is the source of truth
+for correct behavior). You do not assemble anything — the patterns are ready to
+run.
 
 A program communicates results by **storing them to data memory**; the
 testbench runs your CPU to `halt`, then compares the final data memory to the
-ISS golden. You pass when it prints `RESULT: PASS`.
+golden. You pass when it prints `RESULT: PASS`.
 
-Two programs are provided: [`programs/ops.s`](programs/ops.s) (covers the whole
-ISA) and [`programs/mac.s`](programs/mac.s) (a Q6.10 dot product showcasing MAC,
-result `4.0 = 0x1000`).
+Two programs are provided: `ops` (covers the whole ISA) and `mac` (a Q6.10 dot
+product showcasing MAC, result `4.0 = 0x1000`). The `01_RTL/Makefile` copies the
+selected program's patterns into `build/` before each run (`make vsim PROG=ops`,
+`make vsim PROG=mac`).

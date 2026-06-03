@@ -103,7 +103,7 @@ build here. Keep your FXMUL and FXADD logic clean and reusable.
 
 ## What "correct" means
 
-The self-checking testbench ([`tb/alu_tb.v`](tb/alu_tb.v)) compares your ALU
-against a Python reference model ([`tools/gen_vectors.py`](tools/gen_vectors.py))
+The self-checking testbench ([`00_TB/alu_tb.v`](00_TB/alu_tb.v)) compares your
+ALU against pre-committed golden patterns in [`00_TB/golden/`](00_TB/golden/)
 over thousands of directed-corner and random vectors. You pass when it prints
 `RESULT: PASS` (zero mismatches on `y`, `zero`, and `overflow`).

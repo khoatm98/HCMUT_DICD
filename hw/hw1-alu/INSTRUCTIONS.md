@@ -1,30 +1,22 @@
 # HW1 — Step-by-step instructions
 
 > Work inside the environment (`make shell`, or `conda activate hcmut-eda`, or
-> the front-end conda profile). For HW1 you can also just use a local
-> Verilator + Python install. Run everything from `hw/hw1-alu/`.
+> the front-end conda profile). For HW1 you can also just use a local Verilator
+> install — **no Python is needed**. Run everything from `hw/hw1-alu/01_RTL/`.
 
 ## 0. Orient yourself
 
 ```bash
-cd hw/hw1-alu
+cd hw/hw1-alu/01_RTL
 ls
 ```
-- `rtl/alu.v` — **the file you edit** (the starter stub).
-- `tb/alu_tb.v` — the self-checking testbench (don't edit).
-- `tools/gen_vectors.py` — the Python reference model + golden-vector generator.
-- `SPEC.md` — the exact operation table and Q6.10 rules. **Read it first.**
+- `01_RTL/alu.v` — **the file you edit** (the starter stub).
+- `00_TB/alu_tb.v` — the self-checking testbench (don't edit).
+- `00_TB/golden/` — the pre-committed public test patterns (`alu_vectors.hex`,
+  `alu_count.vh`). You simulate against these directly; nothing to generate.
+- `SPEC.md` (at the module root) — the operation table and Q6.10 rules. **Read it first.**
 
-## 1. Generate the golden vectors
-
-```bash
-make vectors
-```
-This writes `golden/alu_vectors.hex` (thousands of `op,a,b → y,zero,overflow`
-cases) and `golden/alu_count.vh`. The Python model in `tools/gen_vectors.py` is
-the source of truth for correct behavior.
-
-## 2. Run the check once to see it fail
+## 1. Run the check once to see it fail
 
 ```bash
 make vsim        # Verilator (fast); or `make sim` for Icarus
@@ -32,9 +24,9 @@ make vsim        # Verilator (fast); or `make sim` for Icarus
 The starter only implements `ADD` and `PASSB`, so you'll see lots of
 mismatches and `RESULT: FAIL`. That's expected — now make it pass.
 
-## 3. Implement the ALU
+## 2. Implement the ALU
 
-Edit `rtl/alu.v`. Fill in every `op` in the case statement per [SPEC.md](SPEC.md):
+Edit `01_RTL/alu.v`. Fill in every `op` in the case statement per [SPEC.md](SPEC.md):
 
 - Integer ops: `SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU`.
 - Fixed-point ops: `FXADD, FXSUB` (saturate) and `FXMUL` (round-half-up + saturate).
@@ -45,7 +37,7 @@ Tips: use the symbolic opcodes (`` `ALU_SUB `` …), declare wide signed
 temporaries for the fixed-point math, and re-read the FXMUL worked example in
 the spec.
 
-## 4. Iterate until it passes
+## 3. Iterate until it passes
 
 ```bash
 make vsim
@@ -58,24 +50,24 @@ RESULT: PASS
 When a vector fails, the testbench prints the `op/a/b`, what your ALU produced,
 and what was expected — start from the first failure.
 
-## 5. Look at the waveform (at least once)
+## 4. Look at the waveform (at least once)
 
 ```bash
-make sim        # produces sim/alu.vcd
+make sim        # produces build/alu.vcd
 make wave       # opens GTKWave
 ```
 Find an `FXMUL` operation and confirm the inputs/outputs match your mental model.
 
-## 6. Clean up and check lint
+## 5. Clean up and check lint
 
 ```bash
 make lint       # aim for no warnings in your finished design
 ```
 
-## 7. What to submit
+## 6. What to submit
 
-Put these in `artifacts/` (see [RUBRIC.md](RUBRIC.md)):
-- your completed `rtl/alu.v`,
+Put these in `../artifacts/` (see [RUBRIC.md](RUBRIC.md)):
+- your completed `01_RTL/alu.v`,
 - the `make vsim` (or `make sim`) log showing `RESULT: PASS`,
 - one annotated GTKWave screenshot (e.g. an `FXMUL` with saturation),
 - a 3–5 sentence note: how you handled rounding and saturation.

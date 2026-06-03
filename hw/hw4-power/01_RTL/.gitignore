@@ -1,0 +1,4 @@
+# Transient run helpers created by `make prep` (point into ../00_TB and build/).
+/golden
+/workload
+/sim

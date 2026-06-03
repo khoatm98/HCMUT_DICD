@@ -2,6 +2,17 @@
 
 > **Do not distribute to students.** Release the reference RTL only after grading.
 
+## Test patterns: public data + private generator
+
+The student-facing patterns are **pre-committed** under
+`hw/hw4-power/00_TB/golden/` (self-checking vectors) and
+`hw/hw4-power/00_TB/workload/` (power workload). The generator
+[`tools/gen_golden.py`](tools/gen_golden.py) is **private to this folder** and is
+NOT shipped under `hw/`. Regenerate HIDDEN patterns for grading with the private
+generator and a different `--seed` (edit the `random.Random(20260603)` seed
+and/or the directed `streams`/`corner` lists), then drop the new `.hex`/`.vh`
+into `00_TB/golden` and `00_TB/workload`.
+
 ## Reference solution
 
 The complete, correct engine is the canonical
@@ -10,31 +21,37 @@ The complete, correct engine is the canonical
 no second copy here. To confirm it passes the released testbench:
 
 ```bash
-cd hw/hw4-power
-make vectors
-make ref            # compiles common/rtl/iotdf/iotdf.v against tb/iotdf_tb.v (Icarus)
+cd hw/hw4-power/01_RTL
+make ref            # compiles common/rtl/iotdf/iotdf.v against ../00_TB/iotdf_tb.v (Icarus)
 # expect: "Checked 345 cycles, 0 mismatch(es)."  /  "RESULT: PASS"  /  ">> reference iotdf PASS"
 ```
 
-(Local front-end machines may only have Verilator; equivalently
-`make vsim RTL=../../common/rtl/iotdf/iotdf.v` → `RESULT: PASS`.)
+(Local front-end machines may only have Verilator; equivalently, from `01_RTL`,
+`make vsim RTL=../../../common/rtl/iotdf/iotdf.v` → `RESULT: PASS`.)
 
 ## Grading a submission
 
 ```bash
-# with the student's rtl/iotdf.v in place:
-make vectors        # or regenerate with a different seed for hidden testing
+# with the student's 01_RTL/iotdf.v in place:
+cd hw/hw4-power/01_RTL
 make sim            # -> RESULT: PASS / FAIL ; non-zero exit on FAIL
 make lint           # style/structure points
 # power part (container):
-make compare        # build/power_base.rpt, build/power_cg.rpt, artifacts/ppa_compare.md
+cd ../02_SYN  && make synth synth-cg      # baseline + clock-gated netlists
+cd ../03_GATE && make gate gate-cg        # gate-level sim -> activity VCDs
+cd ../06_POWER && make compare            # power_base.rpt, power_cg.rpt, ../artifacts/ppa_compare.md
 ```
 
 ### Hidden testing
-Edit the `rng = random.Random(20260603)` seed (and/or the directed `streams` /
-`corner` lists) in `tools/gen_golden.py`, then `make vectors && make sim`. Because
-the testbench compares cycle-by-cycle against the regenerated golden, any new
-stimulus is a valid self-checking test — hard-coding released vectors fails.
+The committed patterns in `00_TB/golden` + `00_TB/workload` are the PUBLIC set.
+For hidden grading, run the private generator
+`instructor/solutions/hw4-power/tools/gen_golden.py` with a different seed (edit
+`rng = random.Random(20260603)` and/or the directed `streams`/`corner` lists),
+then overwrite the `00_TB/golden` + `00_TB/workload` `.hex`/`.vh` with the new
+files and re-run `cd 01_RTL && make sim`. Because the testbench compares
+cycle-by-cycle against the golden, any new stimulus is a valid self-checking
+test — hard-coding released vectors fails. (Students never run the generator;
+their Makefiles read the committed patterns directly, no Python required.)
 
 ## Expected values / hand-checks
 
@@ -50,9 +67,11 @@ Independently verified (different implementation than the golden loop):
   a zero stream emits exactly those bytes; XOR is self-inverse, so an
   identically-seeded re-scramble recovers the plaintext.
 
-The released golden has **345** self-checking cycles and a **385**-cycle power
-workload (`make vectors`). The whole golden file was re-derived a second way
-(table-driven CRC, log-fold gray2bin) with 0 mismatches.
+The committed public golden has **345** self-checking cycles
+(`00_TB/golden/iotdf_vectors.hex`) and a **385**-cycle power workload
+(`00_TB/workload/workload.hex`), produced by the private `tools/gen_golden.py`.
+The whole golden file was re-derived a second way (table-driven CRC, log-fold
+gray2bin) with 0 mismatches.
 
 ## Design notes (why this is the power homework)
 
@@ -65,8 +84,9 @@ workload (`make vectors`). The whole golden file was re-derived a second way
   needless **clock** toggling on the idle stateful unit → the bulk of the
   measured saving.
 - **Activity-driven power:** power is meaningless without a workload. The flow
-  runs a gate-level sim on `workload/workload.hex` to a VCD, then OpenSTA
-  `report_power -scope iotdf_workload_tb/dut` annotates real switching.
+  runs a gate-level sim on `00_TB/workload/workload.hex` (03_GATE) to a VCD, then
+  OpenSTA `report_power` with `VCD_SCOPE=iotdf_workload_tb/dut` (06_POWER)
+  annotates real switching.
 - The CRC and LFSR are written with synthesizable Verilog `function`s (loops with
   a constant bound) so the netlist is flop-array + combinational logic — no macros.
 
@@ -87,8 +107,10 @@ workload (`make vectors`). The whole golden file was re-derived a second way
 - **Interface edits:** break the TB + the back-end flow.
 
 ## Toolchain note
-`make`/`make ref` use Icarus; `make vsim` uses Verilator (faster). The power
-targets need the container: Yosys (`synth_sky130.tcl`, `CLOCKGATE=1`), Icarus
-gate-level sim against the SKY130 cell models (`-DFUNCTIONAL -DUNIT_DELAY="#1"`),
-and OpenSTA (`sta.tcl`, `VCD`/`VCD_SCOPE`). `make compare` ties them together and
-fills `artifacts/ppa_compare.md` via `tools/make_ppa.py`.
+In `01_RTL`, `make sim`/`make ref` use Icarus; `make vsim` uses Verilator
+(faster). The power stages need the container: `02_SYN` runs Yosys
+(`synth_sky130.tcl`, `CLOCKGATE=1`), `03_GATE` runs Icarus gate-level sim against
+the SKY130 cell models (`-DFUNCTIONAL -DUNIT_DELAY="#1"`), and `06_POWER` runs
+OpenSTA (`sta.tcl`, `VCD`/`VCD_SCOPE`). `cd 06_POWER && make compare` ties the
+power reports together and fills `../artifacts/ppa_compare.md` via the public
+`06_POWER/make_ppa.py`.

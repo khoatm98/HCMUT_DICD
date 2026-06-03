@@ -17,8 +17,8 @@ By the end of HW2 you should be able to:
 4. **Reason about an ISA.** Understand instruction formats, immediate
    sign-extension, PC-relative branches, jumps, and load/store addressing.
 
-5. **Verify at scale with a golden model.** Write programs in assembly, assemble
-   them, and self-check the CPU against a reference instruction-set simulator —
+5. **Verify at scale with a golden model.** Run pre-assembled test programs and
+   self-check the CPU against a reference instruction-set simulator's golden —
    the same golden-model discipline used through HW3 (gate-level) and beyond.
 
 This CPU is the design that is synthesized (HW3), power-optimized (HW4), and

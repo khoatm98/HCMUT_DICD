@@ -1,0 +1,6 @@
+# Final project submission artifacts:
+#   - functional + gate-level sim logs (RESULT: PASS), and an SNR/BER plot or table
+#   - synthesis area + STA reports
+#   - power report (baseline vs optimized) + PPA table
+#   - APR: floorplan/congestion/layout screenshots, DRC/LVS status, post-route timing, final GDS
+#   - the project report (algorithm, microarchitecture, PPA, decisions) + one-command runbook

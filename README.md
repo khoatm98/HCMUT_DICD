@@ -11,26 +11,30 @@ container, and friendly to modest laptops and low-bandwidth/offline classrooms.
 
 ---
 
-## The big idea: one design, the whole flow
+## How the course is built
 
-Most courses teach the chip-design flow with a *different* toy at each step. Here
-you build **one** design — a small 16-bit CPU called **TinyRISC-16** — and push
-that *same* design through every stage. Each homework is the next stage of the
-flow applied to the thing you already built:
+A front-end pair builds design + verification habits, then each back-end
+homework is a focused, **standalone** design that spotlights one stage of the
+flow (the NTU-CVSD model), culminating in a full RTL-to-GDSII capstone:
 
 ```
-  HW1            HW2              HW3            HW4             HW5            Final
- ┌──────┐      ┌────────┐       ┌────────┐     ┌────────┐      ┌────────┐    ┌────────┐
- │ ALU  │─────▶│  CPU   │──────▶│ Synth  │────▶│ Power  │─────▶│  APR   │───▶│  Full  │
- │      │ reuse│ + MAC  │ same  │(gates) │ same│  opt   │ same │(layout)│    │  flow  │
- │ Q6.10│  ALU │ custom │  RTL  │  +STA  │ net │ VCD/   │ net  │ GDSII  │    │  GDSII │
- │      │      │ instr  │       │        │     │ SAIF   │      │        │    │        │
- └──────┘      └────────┘       └────────┘     └────────┘      └────────┘    └────────┘
- Front-end RTL + verification │  Back-end / physical implementation │ Culmination
+ FRONT-END (design + verify)        BACK-END (one flow stage each)          CAPSTONE
+ ┌──────┐   ┌──────────┐    ┌────────────┐ ┌────────────┐ ┌────────────┐  ┌─────────────┐
+ │ HW1  │──▶│  HW2     │    │   HW3      │ │   HW4      │ │   HW5      │  │   Final     │
+ │ ALU  │alu│ CPU+MAC  │    │ conv eng.  │ │ IoT filter │ │ conv eng.  │  │ MIMO sphere │
+ │ Q6.10│reuse│(reuses │    │ SYNTHESIS  │ │  POWER     │ │ APR→GDSII  │  │  decoder    │
+ │      │   │ HW1 ALU) │    │(Yosys+STA) │ │(VCD/SAIF)  │ │(OpenROAD)  │  │ RTL→GDSII   │
+ └──────┘   └──────────┘    └────────────┘ └────────────┘ └────────────┘  └─────────────┘
+   front-end continuity        standalone designs, one per back-end stage    everything
 ```
 
-Because every homework's output is the next homework's input, the final project
-is a *culmination*, not a fresh start.
+**HW1 → HW2** share a running design — the Q6.10 ALU you build in HW1 becomes the
+execution unit of the TinyRISC-16 CPU in HW2 (and the CPU adds a MAC custom
+instruction). **HW3–HW5** are standalone designs, each spotlighting one back-end
+stage: a **convolution engine** (synthesized in HW3, placed-and-routed to GDSII
+in HW5) and an **IoT data filter** (power-optimized in HW4). The **Final** is a
+new **MIMO sphere-decoder** taken the whole way, applying every skill — graded as
+a competition on detection quality (PSNR) plus area, time, and power.
 
 ---
 
@@ -105,39 +109,52 @@ Air-gapped or low-bandwidth campus? [docs/03-offline-deployment.md](docs/03-offl
 HCMUT_DICD/
 ├── env/             # the only thing you install: the pinned Docker image + compose
 ├── smoke/           # `make smoke` — one-command end-to-end toolchain check
-├── common/          # shared, REUSED RTL (ALU, CPU) + flow scripts — the continuity spine
+├── common/          # shared RTL: HW1 ALU + HW2 CPU (front-end), conv engine, IoT filter + flow scripts
 ├── hw/
 │   ├── hw1-alu/     # HW1: parameterized Q6.10 ALU (design + verification)
-│   ├── hw2-cpu/     # HW2: TinyRISC-16 CPU + the MAC custom instruction (reuses HW1 ALU)
-│   ├── hw3-synth/   # HW3: synthesis (Yosys/SKY130) + SDC + gate sim + STA
-│   ├── hw4-power/   # HW4: power optimization (activity capture, clock gating, PPA)
-│   └── hw5-apr/     # HW5: APR to clean GDSII (LibreLane/OpenROAD, KLayout)
-├── final-project/   # full RTL-to-GDSII on the small ASIC — the culmination
+│   ├── hw2-cpu/     # HW2: TinyRISC-16 CPU + MAC custom instruction (reuses HW1 ALU)
+│   ├── hw3-synth/   # HW3: SYNTHESIS of a 3x3 convolution engine (Yosys/SKY130 + SDC + gate sim + STA)
+│   ├── hw4-power/   # HW4: POWER opt of an IoT data filter (activity capture, clock gating, PPA)
+│   └── hw5-apr/     # HW5: APR of the conv engine to clean GDSII (LibreLane/OpenROAD, KLayout)
+├── final-project/   # FINAL: MIMO sphere-decoder, full RTL-to-GDSII (PSNR + area/time/power)
 ├── docs/            # getting-started, flow guide, offline deployment, troubleshooting
 ├── instructor/      # reference solutions, autograder, grading notes (not for students)
 ├── scripts/         # host helpers (preflight, offline bundle, clean)
 └── templates/       # skeletons that keep every module consistent
 ```
 
-Each `hw/` module is self-contained: `OBJECTIVES.md`, `SPEC.md`, step-by-step
-`INSTRUCTIONS.md`, `RUBRIC.md`, a `Makefile` with one-command targets, starter
-RTL, a self-checking testbench, and an `artifacts/` folder for what you submit.
+Each `hw/` module is self-contained and organized into **CVSD-style stage
+directories**: `00_TB/` (testbench + committed public test patterns), `01_RTL/`
+(the starter RTL you edit + its Makefile), and back-end stages `02_SYN/`,
+`03_GATE/`, `04_APR/`, `06_POWER/` where applicable — plus `SPEC.md`,
+`OBJECTIVES.md`, `INSTRUCTIONS.md`, `RUBRIC.md` at the module root and an
+`artifacts/` folder. Run each stage from its directory (e.g. `cd 01_RTL && make
+vsim`). Patterns are pre-committed; the generator scripts are instructor-private
+(graded later with hidden patterns).
 
 ---
 
-## The running design at a glance — TinyRISC-16
+## The designs at a glance
 
-- **16-bit, single-cycle** CPU (no pipeline/hazards → readable with basic Verilog).
-- 8 registers (R0 = 0), Harvard memory, 4-bit opcode.
-- **ALU** (built in HW1) supports integer **and** signed **fixed-point Q6.10**
-  (6 integer + 10 fraction bits) add/sub/mul with rounding + saturation.
-- **Custom instruction = MAC**: `MAC rd, rs, rt → rd = rd + rs*rt` (Q6.10),
-  which *reuses* the ALU's multiplier and adder — the heart of how a custom
-  instruction is "just a small ALU extension."
-- A small, course-provided **assembler + golden ISA simulator** (Python) let you
-  write test programs and check the CPU against a reference — fully offline.
+**Front-end (HW1–HW2) — TinyRISC-16:** a 16-bit single-cycle CPU (8 regs, R0=0,
+Harvard memory, 4-bit opcode). The HW1 **ALU** (integer **and** signed **Q6.10**
+fixed-point add/sub/mul with rounding + saturation) becomes the CPU's execution
+unit in HW2, which adds the **MAC** custom instruction (`rd += rs*rt`, Q6.10),
+reusing the ALU multiplier. A Python **assembler + golden ISA simulator** verify
+it, fully offline.
 
-Full ISA and rationale: [hw/hw2-cpu/SPEC.md](hw/hw2-cpu/SPEC.md) *(added in the HW2 build)*.
+**Back-end standalone designs (CVSD-style — one per flow stage):**
+- **HW3 — 3×3 convolution engine** (Q6.10, 8×8 image, zero-pad): the *synthesis*
+  subject — one shared multiplier + sequential MAC + flop arrays, macro-free.
+- **HW4 — IoT data filter** (CRC-8 / Gray↔binary / LFSR scramble): the *power*
+  subject — idle function units enable clock gating + operand isolation.
+- **HW5** places-and-routes the **HW3 convolution engine** to a clean GDSII.
+
+**Final — MIMO sphere-decoder:** QR done in software; the hardware searches
+`min ‖ỹ − R·s‖²`. Taken RTL→GDSII and graded as a competition on **PSNR** plus
+**area, time, power**.
+
+Per-design specs live in each module's `SPEC.md`.
 
 ---
 
@@ -147,7 +164,8 @@ Full ISA and rationale: [hw/hw2-cpu/SPEC.md](hw/hw2-cpu/SPEC.md) *(added in the 
 - **Reproducible** — one pinned container; identical results on every machine.
 - **Pedagogical visibility** — you *inspect* intermediate artifacts (netlists,
   floorplans, congestion, timing/power reports), not push a magic button.
-- **Continuity** — each homework reuses and extends the previous one.
+- **Continuity where it teaches** — HW1→HW2 reuse one design (ALU→CPU); the
+  back-end homeworks are focused standalone designs (CVSD-style), one per flow stage.
 - **Beginner-friendly** — assumes basic Verilog and digital logic; no back-end
   experience required.
 

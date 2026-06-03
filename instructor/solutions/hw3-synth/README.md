@@ -2,51 +2,73 @@
 
 > **Do not distribute to students.** Release the reference RTL/SDC only after grading.
 
+## Test patterns: PUBLIC data + PRIVATE generator
+
+The committed **public** test patterns live in
+[`hw/hw3-synth/00_TB/golden/`](../../../hw/hw3-synth/00_TB/golden) (`conv_stim.hex`,
+`conv_exp.hex`, `conv_count.vh`). The generator that produced them,
+[`tools/gen_golden.py`](tools/gen_golden.py), is **private** (here, not under
+`hw/`). Regenerate **HIDDEN** patterns for grading with a **different `--seed`**:
+
+```bash
+python3 instructor/solutions/hw3-synth/tools/gen_golden.py --seed <N> --outdir /tmp/hidden_golden
+# default seed (20260603) reproduces the committed public 00_TB/golden byte-for-byte
+```
+
 ## Reference solution
 
 The complete, correct engine is the canonical
 [`common/rtl/conv/conv_engine.v`](../../../common/rtl/conv/conv_engine.v) (the
 same file HW5 places-and-routes). The reference timing constraints are
-[`conv_ref.sdc`](conv_ref.sdc) in this folder. There is intentionally **no**
-second copy of the RTL here — one canonical file avoids drift between "the
-reference" and "what HW5 reuses".
+[`conv_ref.sdc`](conv_ref.sdc) in this folder (the released student SDC now lives
+at `hw/hw3-synth/02_SYN/conv.sdc`, completed with the CVSD-style I/O block).
+There is intentionally **no** second copy of the RTL here — one canonical file
+avoids drift between "the reference" and "what HW5 reuses".
 
-Confirm the reference passes the released testbench:
+Confirm the reference passes the released testbench (stage-dir layout):
 
 ```bash
-cd hw/hw3-synth
-make golden
-make ref            # compiles common/rtl/conv/conv_engine.v against tb/conv_engine_tb.v
-# expect: "Checked 8 case(s) x 64 pixels, 0 mismatch(es)." / "RESULT: PASS" / ">> reference engine PASS"
+cd hw/hw3-synth/01_RTL
+make ref            # == make vsim RTL=../../../common/rtl/conv/conv_engine.v
+# expect: "Checked 8 case(s) x 64 pixels, 0 mismatch(es)." / "RESULT: PASS" / ">> verilator sim PASS"
 ```
 
-(`make ref` uses Icarus. With only Verilator available, the equivalent is
-`make vsim RTL="../../common/rtl/conv/conv_engine.v"` → `RESULT: PASS`.)
+(With only Verilator available, `make ref` runs the released testbench against
+the reference engine and prints `RESULT: PASS`.)
 
 ## Grading a submission
 
 ```bash
-# with the student's rtl/conv_engine.v in place:
-make golden                 # or regenerate with a different seed for hidden testing
-make sim                    # -> RESULT: PASS / FAIL ; non-zero exit on FAIL
+# with the student's 01_RTL/conv_engine.v in place:
+cd hw/hw3-synth/01_RTL
+make vsim                   # -> RESULT: PASS / FAIL ; non-zero exit on FAIL (Verilator)
+make sim                    # Icarus equivalent (container)
 make lint                   # style/lint points
 
 # back-end (container):
-make synth                  # -> build/conv_netlist.v + build/conv_area.rpt
-make gl-sim                 # -> RESULT: PASS  (gate equivalence)
-make sta                    # student SDC -> build/conv_sta.rpt (check positive slack)
+cd ../02_SYN
+make synth                  # -> 02_SYN/build/conv_netlist.v + conv_area.rpt
+make sta                    # student SDC (conv.sdc) -> 02_SYN/build/conv_sta.rpt (positive slack)
 # or check timing with the reference SDC:
 TOP=conv_engine LIB="$LIB" NETLIST=build/conv_netlist.v \
-  SDC=../../instructor/solutions/hw3-synth/conv_ref.sdc \
-  sta -no_init -exit ../../common/flow/sta.tcl
+  SDC=../../../instructor/solutions/hw3-synth/conv_ref.sdc \
+  sta -no_init -exit ../../../common/flow/sta.tcl
+cd ../03_GATE
+make gl-sim                 # -> RESULT: PASS  (gate equivalence)
 ```
 
 ### Hidden testing
-Re-run with a different RNG seed and/or extra kernels and edge/saturation cases
-by editing `rng = random.Random(...)` and `make_cases()` in
-`tools/gen_golden.py`, then `make golden && make sim`. Because the golden is
-computed by the Python model, **any** kernel+image is a valid self-checking
-test — this defeats hard-coded released outputs.
+The public patterns under `00_TB/golden/` are committed; the generator is
+private (`instructor/solutions/hw3-synth/tools/gen_golden.py`). Regenerate
+HIDDEN patterns with a different seed and drop them into `00_TB/golden/` before
+re-running the stages:
+```bash
+python3 instructor/solutions/hw3-synth/tools/gen_golden.py --seed <N> \
+    --outdir hw/hw3-synth/00_TB/golden
+```
+Because the golden is computed by the Python model, **any** kernel+image is a
+valid self-checking test — this defeats hard-coded released outputs. (Restore the
+committed public set with the default seed when done.)
 
 ## Expected results / reference values
 

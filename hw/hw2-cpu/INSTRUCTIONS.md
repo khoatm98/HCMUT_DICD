@@ -1,25 +1,30 @@
 # HW2 — Step-by-step instructions
 
-> Run from `hw/hw2-cpu/`. You need the front-end tools (Icarus or Verilator) +
-> Python — the conda front-end env or Docker both work.
+> Run from `hw/hw2-cpu/01_RTL/`. You need the front-end tools (Icarus or
+> Verilator) — the conda front-end env or Docker both work. No Python needed:
+> the test patterns are pre-committed.
 
 ## 0. Orient
 
-- `rtl/cpu_core.v` — **the file you edit** (datapath control; 6 TODOs).
-- `tb/cpu_tb.v` — self-checking testbench (don't edit); it owns memory and
-  compares final data memory to the golden ISS.
-- `tools/asm.py` — the assembler; `tools/iss.py` — the golden simulator.
-- `programs/ops.s`, `programs/mac.s` — test programs.
+- `01_RTL/cpu_core.v` — **the file you edit** (datapath control; 6 TODOs).
+- `01_RTL/Makefile` — the functional-sim targets you drive.
+- `00_TB/cpu_tb.v` — self-checking testbench (don't edit); it owns memory and
+  compares final data memory to the golden image.
+- `00_TB/patterns/<prog>.{imem,dmem,golden}.hex` — committed public test patterns
+  (the Makefile copies the selected program's into `01_RTL/build/` before a run).
 - **Read [SPEC.md](SPEC.md) first** (ISA + the MAC definition).
 
-## 1. See the reference work, and the starter fail
+```bash
+cd 01_RTL
+```
+
+## 1. See the starter fail
 
 ```bash
-make ref              # reference CPU passes ops + mac  (sanity that the flow works)
 make vsim PROG=ops    # YOUR starter cpu_core -> RESULT: FAIL (control is TODO)
 ```
 
-## 2. Implement the control in `rtl/cpu_core.v`
+## 2. Implement the control in `cpu_core.v`
 
 Fill the six TODOs (the datapath skeleton, register file, and ALU are provided):
 
@@ -38,27 +43,23 @@ Fill the six TODOs (the datapath skeleton, register file, and ALU are provided):
 ```bash
 make vsim PROG=ops    # fast (Verilator)
 make vsim PROG=mac
-make                  # the graded check: Icarus over ALL programs
+make                  # the graded check: Icarus over ALL programs (ops + mac)
 ```
 When a program fails, the testbench prints which data-memory word differs and
-the expected value — compare against the ISS (`make prog PROG=ops` then read
-`sim/golden.hex`).
+the expected value — compare against the committed golden in
+`00_TB/patterns/<prog>.golden.hex` (the run uses a copy in `build/golden.hex`).
 
 ## 4. Inspect a waveform
 
 ```bash
-make wave PROG=mac    # GTKWave on sim/cpu.vcd -- watch the MAC accumulate
+make wave PROG=mac    # GTKWave on build/cpu.vcd -- watch the MAC accumulate
 ```
 
-## 5. Write your own test (recommended)
+## 5. Submit (see [RUBRIC.md](RUBRIC.md))
 
-Add `programs/mytest.s`, then `make vsim PROG=mytest`. The ISS computes the
-golden automatically, so any program you can write becomes a self-checking test.
-
-## 6. Submit (see [RUBRIC.md](RUBRIC.md))
-
-Put in `artifacts/`: your `rtl/cpu_core.v`, the `make` log showing all programs
-`PASS`, a MAC waveform screenshot, and a short note on how MAC reuses the ALU.
+Put in `artifacts/`: your `01_RTL/cpu_core.v`, the `make` log showing all
+programs `PASS`, a MAC waveform screenshot, and a short note on how MAC reuses
+the ALU.
 
 ## Common pitfalls
 - **Branch operands:** `beq rd,rs` compares `reg[rd]` and `reg[rs]` — the compare

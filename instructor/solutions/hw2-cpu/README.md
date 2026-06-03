@@ -9,22 +9,49 @@ The complete CPU is the canonical
 HW3–HW5 synthesize). Confirm it passes all provided programs:
 
 ```bash
-cd hw/hw2-cpu
+cd hw/hw2-cpu/01_RTL
 make ref
 # expect: ops -> RESULT: PASS, mac -> RESULT: PASS, ">> REFERENCE CPU PASS on all programs"
 ```
 
+## Module layout (CVSD stage dirs)
+- `hw/hw2-cpu/00_TB/cpu_tb.v` — testbench.
+- `hw/hw2-cpu/00_TB/patterns/<prog>.{imem,dmem,golden}.hex` — **committed public**
+  patterns for `ops` and `mac` (the `01_RTL/Makefile` copies the selected
+  program's three files into `01_RTL/build/` before each run).
+- `hw/hw2-cpu/01_RTL/cpu_core.v` — student starter stub; `01_RTL/Makefile` —
+  functional-sim targets.
+
+## Private generators (this directory — do NOT distribute)
+- `tools/asm.py` — TinyRISC-16 assembler (`.s` → imem/dmem hex).
+- `tools/iss.py` — golden instruction-set simulator (imem+dmem → final-dmem golden).
+- `programs/ops.s`, `programs/mac.s` — the source for the public patterns.
+
+**Regenerate HIDDEN patterns with the private generator (use a different
+`--seed`/program for grading)** — e.g. assemble a new `programs/<name>.s` and run
+the ISS, then drop the resulting `00_TB/patterns/<name>.{imem,dmem,golden}.hex`:
+
+```bash
+# from instructor/solutions/hw2-cpu/  (PRIVATE tools)
+python3 tools/asm.py programs/<name>.s /tmp/<name>.imem.hex /tmp/<name>.dmem.hex
+python3 tools/iss.py /tmp/<name>.imem.hex /tmp/<name>.dmem.hex /tmp/<name>.golden.hex
+cp /tmp/<name>.{imem,dmem,golden}.hex ../../../hw/hw2-cpu/00_TB/patterns/
+```
+The public `ops`/`mac` patterns were generated this same way and committed under
+`00_TB/patterns/`.
+
 ## Grading a submission
 
 ```bash
-# with the student's rtl/cpu_core.v in place:
+# with the student's 01_RTL/cpu_core.v in place, from hw/hw2-cpu/01_RTL:
 make                       # runs ops + mac via Icarus
-make sim PROG=<hidden>     # any hidden program you add to programs/
+make sim PROG=<hidden>     # any hidden program whose patterns you staged
 ```
 
 The golden is computed by `tools/iss.py`, so **any** assembly program is a valid
-self-checking test. To add hidden tests, drop `programs/<name>.s` and run
-`make sim PROG=<name>` (and/or add the name to `PROGS` in the Makefile).
+self-checking test. To add hidden tests, generate `00_TB/patterns/<name>.*` with
+the private generator above and run `make sim PROG=<name>` (and/or add the name
+to `PROGS` in `01_RTL/Makefile`).
 
 ## Expected results / reference values
 - `ops.s`: exercises the whole ISA; hand-checked goldens include
@@ -50,6 +77,6 @@ self-checking test. To add hidden tests, drop `programs/<name>.s` and run
 - Editing the module interface (breaks TB + HW3).
 
 ## Toolchain note
-`make`/`make ref` use Icarus; `make vsim` uses Verilator (faster, good for the
-lab). Gate-level reuse: the same `tb/cpu_tb.v` drives the HW3 synthesized
-netlist (it only needs the `cpu_core` ports).
+From `01_RTL/`: `make`/`make ref` use Icarus; `make vsim` uses Verilator (faster,
+good for the lab). Gate-level reuse: the same `00_TB/cpu_tb.v` drives the HW3
+synthesized netlist (it only needs the `cpu_core` ports).

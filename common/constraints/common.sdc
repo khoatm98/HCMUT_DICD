@@ -11,6 +11,6 @@ if {![info exists CLK_PERIOD]} { set CLK_PERIOD 20.0 }
 
 create_clock -name core_clk -period $CLK_PERIOD [get_ports $CLK_PORT]
 
-# Pessimism so timing is not artificially easy on this teaching flow.
-set_clock_uncertainty 0.25 [get_clocks core_clk]
+# CVSD-style 130nm pessimism (SKY130 is also a 130nm-class node).
+set_clock_uncertainty 0.1  [get_clocks core_clk]
 set_clock_transition  0.15 [get_clocks core_clk]

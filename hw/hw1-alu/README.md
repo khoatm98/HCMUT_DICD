@@ -10,23 +10,26 @@ design.
 3. [INSTRUCTIONS.md](INSTRUCTIONS.md) — step-by-step.
 4. [RUBRIC.md](RUBRIC.md) — how it's graded.
 
-## Quick commands (run from this folder)
-```bash
-make vectors    # generate golden vectors from the Python reference model
-make vsim       # Verilator self-checking sim (fast)   <- iterate with this
-make sim        # Icarus self-checking sim
-make wave       # open sim/alu.vcd in GTKWave
-make lint       # Verilator lint of your RTL
-```
-
-## Files
+## Layout (CVSD-style stage dirs)
 | Path | Edit? | What |
 |------|:----:|------|
-| `rtl/alu.v` | ✅ | the ALU you implement (starter stub) |
-| `tb/alu_tb.v` | ❌ | self-checking testbench |
-| `tools/gen_vectors.py` | ❌ | golden reference model + vector generator |
-| `golden/` | — | generated vectors (`make vectors`) |
+| `01_RTL/alu.v` | ✅ | the ALU you implement (starter stub) |
+| `01_RTL/Makefile` | ❌ | functional-sim targets (run from here) |
+| `00_TB/alu_tb.v` | ❌ | self-checking testbench |
+| `00_TB/golden/` | ❌ | the committed public test patterns (vectors + count) |
 | `artifacts/` | ✅ | put your submission here (log, screenshot, note) |
+
+The test patterns in `00_TB/golden/` are **pre-committed** — you do **not**
+generate them, and you do **not** need Python. Just simulate against them.
+
+## Quick commands (run from `01_RTL/`)
+```bash
+cd 01_RTL
+make vsim       # Verilator self-checking sim (fast)   <- iterate with this
+make sim        # Icarus self-checking sim
+make wave       # open build/alu.vcd in GTKWave
+make lint       # Verilator lint of your RTL
+```
 
 You pass when the testbench prints `RESULT: PASS`. The completed `alu.v` is the
 canonical [`common/rtl/alu/alu.v`](../../common/rtl/alu/alu.v) reused from HW2

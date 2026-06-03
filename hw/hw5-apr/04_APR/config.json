@@ -1,0 +1,11 @@
+{
+    "DESIGN_NAME": "conv_engine",
+    "VERILOG_FILES": "dir::src/*.v",
+    "VERILOG_INCLUDE_DIRS": ["dir::src"],
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 15,
+    "PDK": "sky130A",
+    "FP_CORE_UTIL": 40,
+    "PL_TARGET_DENSITY_PCT": 50,
+    "RUN_LINTER": false
+}

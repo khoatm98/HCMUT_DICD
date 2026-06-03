@@ -5,10 +5,10 @@ the credit is for **measuring and reducing** power and reporting a quantified PP
 
 | # | Criterion | Pts | How it's checked |
 |---|-----------|-----|------------------|
-| 1 | **Functional correctness** — all four functions pass (`RESULT: PASS`) | 30 | `make sim` / `make vsim` exit 0; autograder reruns with fresh + hidden streams |
-| 2 | **Low-power RTL structure** — per-function units, operand-isolated idle inputs, CRC/LFSR registers gated (update only when selected) | 15 | code review + `make lint` |
-| 3 | **Baseline power measured** — `make power-base` produces `build/power_base.rpt` from gate-level activity on the workload | 15 | report present + sane (internal/switching/leakage/total) |
-| 4 | **Clock gating applied** — `make power-cg` re-synthesizes with `CLOCKGATE=1` and re-measures on the same workload | 15 | `build/power_cg.rpt` present; gating cells inserted |
+| 1 | **Functional correctness** — all four functions pass (`RESULT: PASS`) | 30 | `cd 01_RTL && make sim` / `make vsim` exit 0; autograder reruns with fresh + hidden streams |
+| 2 | **Low-power RTL structure** — per-function units, operand-isolated idle inputs, CRC/LFSR registers gated (update only when selected) | 15 | code review + `cd 01_RTL && make lint` |
+| 3 | **Baseline power measured** — `cd 06_POWER && make power-base` produces `06_POWER/build/power_base.rpt` from gate-level activity on the workload | 15 | report present + sane (internal/switching/leakage/total) |
+| 4 | **Clock gating applied** — `02_SYN` re-synthesizes with `CLOCKGATE=1` (`make synth-cg`) and `06_POWER` re-measures on the same workload (`make power-cg`) | 15 | `06_POWER/build/power_cg.rpt` present; gating cells inserted |
 | 5 | **Quantified PPA before/after** — completed `artifacts/ppa_compare.md` with baseline-vs-gated **power and area** numbers and a correct reduction % | 15 | inspect `ppa_compare.md` |
 | 6 | **Discussion** — where the baseline power went; clock gating vs **operand isolation** for the idle units; the area/power trade-off | 10 | inspect write-up |
 | | **Total** | **100** | |
@@ -21,7 +21,7 @@ the credit is for **measuring and reducing** power and reporting a quantified PP
   will not pass.
 - **Power must be activity-driven.** A `report_power` with no VCD (static
   estimate) does not earn items 3–4; the workload VCD must annotate the netlist
-  (`make compare` wires `VCD`/`VCD_SCOPE` for you).
+  (`cd 06_POWER && make compare` wires `VCD`/`VCD_SCOPE` for you).
 - **The improvement is the point, not its size.** Different correct structures
   yield different savings; full credit for items 4–6 needs a *measured* reduction
   and a *correct explanation*, not a particular percentage.
@@ -32,7 +32,8 @@ the credit is for **measuring and reducing** power and reporting a quantified PP
 
 ## Autograde
 
-Instructors: `make ref` runs the testbench against the reference `iotdf`
-(expects `RESULT: PASS`); the per-student functional check is `make sim`. The
-power flow is `make compare` (Yosys + Icarus gate-sim + OpenSTA). See
-`instructor/solutions/hw4-power/`.
+Instructors: `cd 01_RTL && make ref` runs the testbench against the reference
+`iotdf` (expects `RESULT: PASS`); the per-student functional check is
+`cd 01_RTL && make sim`. The power flow is `02_SYN` (`make synth synth-cg`) →
+`03_GATE` (`make gate gate-cg`) → `06_POWER` (`make compare`) — Yosys + Icarus
+gate-sim + OpenSTA. See `instructor/solutions/hw4-power/`.

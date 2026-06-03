@@ -79,9 +79,15 @@ healthcheck:
 	$(RUN) 'bash env/scripts/healthcheck.sh'
 smoke:
 	$(RUN) 'cd smoke && make $(SMOKE_TARGET)'
-hw1 hw2 hw3 hw4 hw5:
-	$(RUN) 'cd hw/$@-* && make'
+# Front-end functional sim lives in each module's 01_RTL/ (CVSD stage dirs).
+hw1 hw2 hw3 hw4:
+	$(RUN) 'cd hw/$@-*/01_RTL && make'
+# HW5 is APR only (04_APR/).
+hw5:
+	$(RUN) 'cd hw/hw5-apr/04_APR && make'
+# Final: run the functional sim from 01_RTL once you've written the RTL; the
+# back-end stages (02_SYN/03_GATE/04_APR/06_POWER) are run per-stage dir.
 final:
-	$(RUN) 'cd final-project && make'
+	$(RUN) 'cd final-project/01_RTL && make'
 clean:
 	bash scripts/clean-all.sh

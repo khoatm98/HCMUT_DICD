@@ -27,7 +27,7 @@ module conv_engine #(
 
 The interface is fixed: the testbench, the synthesis flow, and HW5 (place &
 route) all depend on it. The state codes are in
-[`common/rtl/conv/conv_defs.vh`](../../common/rtl/conv/conv_defs.vh).
+[`common/rtl/conv/conv_defs.vh`](../../../common/rtl/conv/conv_defs.vh).
 
 ## What it computes
 
@@ -77,7 +77,7 @@ out  = saturate(accr)                        // clamp to [0x8000, 0x7FFF]
   `0x8000`; else output the low 16 bits.
 - Rounding/saturation happen **once per output pixel** (after summing all nine
   products), **not** per product — this is exactly the ALU FXMUL rule applied to
-  a dot product. Study [`common/rtl/alu/alu.v`](../../common/rtl/alu/alu.v).
+  a dot product. Study [`common/rtl/alu/alu.v`](../../../common/rtl/alu/alu.v).
 
 > ⚠️ Common mistake: rounding each product back to Q6.10 and then summing. That
 > loses precision and fails the golden check. Accumulate first, round last.
@@ -123,7 +123,7 @@ Keep the design **macro-free and modest** (HW5 places-and-routes it):
 - **Active-low synchronous reset**; **no latches** (assign every reg on every
   path — synthesis will complain otherwise).
 
-The starter `rtl/conv_engine.v` provides the FSM scaffolding, the LOAD phase,
+The starter `01_RTL/conv_engine.v` provides the FSM scaffolding, the LOAD phase,
 and the OUTPUT/DONE phases. You implement the **COMPUTE** datapath: the tap →
 (dr,dc) neighbour mapping with zero padding, the shared multiplier, the
 sequential accumulate, and the per-pixel round-half-up + saturate.
@@ -132,22 +132,22 @@ sequential accumulate, and the per-pixel round-half-up + saturate.
 
 Once the RTL passes the functional check:
 
-- **`make synth`** runs Yosys → a SKY130 gate-level netlist
-  (`build/conv_netlist.v`) + an **area/cell report** (`build/conv_area.rpt`).
-- **`make sta`** runs OpenSTA on that netlist using **your**
-  [`constraints/conv.sdc`](constraints/conv.sdc) (you complete the TODOs:
-  clock, input/output delays) and reports setup/hold **slack**.
-- **`make gl-sim`** runs the **same** self-checking testbench against the
-  synthesized netlist + SKY130 cell models, compared to the **same** golden —
-  proving the gate netlist is **functionally equivalent** to your RTL.
-- **`make all`** = synth + sta + gl-sim.
+- **`make synth`** (in `02_SYN/`) runs Yosys → a SKY130 gate-level netlist
+  (`02_SYN/build/conv_netlist.v`) + an **area/cell report**
+  (`02_SYN/build/conv_area.rpt`).
+- **`make sta`** (in `02_SYN/`) runs OpenSTA on that netlist using **your**
+  [`02_SYN/conv.sdc`](02_SYN/conv.sdc) (clock period + CVSD-style I/O delays) and
+  reports setup/hold **slack**.
+- **`make gl-sim`** (in `03_GATE/`) runs the **same** self-checking testbench
+  against the synthesized netlist + SKY130 cell models, compared to the **same**
+  golden — proving the gate netlist is **functionally equivalent** to your RTL.
 
 ## What "correct" means
 
-The self-checking testbench ([`tb/conv_engine_tb.v`](tb/conv_engine_tb.v))
-drives the input stream and compares your outputs against the Python golden
-model ([`tools/gen_golden.py`](tools/gen_golden.py)) over several test cases
-(box blur, Sobel edge, identity, random kernels, and a saturation stress case).
-You pass the functional gate when it prints `RESULT: PASS` (zero pixel
-mismatches across all cases). You complete HW3 when `make gl-sim` also prints
-`RESULT: PASS` (gate equivalence) and `make sta` reports no timing violations.
+The self-checking testbench ([`00_TB/conv_engine_tb.v`](00_TB/conv_engine_tb.v))
+drives the input stream and compares your outputs against the **committed public
+golden patterns** in [`00_TB/golden/`](00_TB/golden) over several test cases (box
+blur, Sobel edge, identity, random kernels, and a saturation stress case). You
+pass the functional gate when it prints `RESULT: PASS` (zero pixel mismatches
+across all cases). You complete HW3 when `make gl-sim` also prints `RESULT: PASS`
+(gate equivalence) and `make sta` reports no timing violations.

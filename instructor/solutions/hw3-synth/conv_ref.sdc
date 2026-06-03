@@ -1,16 +1,21 @@
 # =============================================================================
 # conv_ref.sdc  --  REFERENCE timing constraints for the convolution engine.
 #
-# Instructor solution for the student-written constraints/conv.sdc (HW3). The
-# engine is a sequential single-clock design; this is a realistic, complete
-# constraint set that yields positive setup/hold slack on the SKY130 netlist.
+# Instructor solution for the student-written 02_SYN/conv.sdc (HW3). The engine
+# is a sequential single-clock design; this is a realistic, complete constraint
+# set that yields positive setup/hold slack on the SKY130 netlist.
 #
-# To check the reference engine + this SDC inside the container:
-#   cd hw/hw3-synth
+# To check the reference engine + this SDC inside the container (stage-dir layout):
+#   cd hw/hw3-synth/02_SYN
 #   make synth
 #   TOP=conv_engine LIB="$LIB" NETLIST=build/conv_netlist.v \
-#     SDC=../../instructor/solutions/hw3-synth/conv_ref.sdc \
-#     sta -no_init -exit ../../common/flow/sta.tcl
+#     SDC=../../../instructor/solutions/hw3-synth/conv_ref.sdc \
+#     sta -no_init -exit ../../../common/flow/sta.tcl
+#
+# Run it from hw/hw3-synth/02_SYN (where common is ../../../common, matching the
+# source path below). The released student SDC at 02_SYN/conv.sdc is already
+# CVSD-complete and is the working reference for grading; this file documents an
+# alternative I/O-delay style.
 # =============================================================================
 
 # ---- 1. clock ----
@@ -19,7 +24,7 @@
 # shared file below (with uncertainty 0.25 ns, transition 0.15 ns).
 set CLK_PORT   clk
 set CLK_PERIOD 20.0
-source ../../common/constraints/common.sdc
+source ../../../common/constraints/common.sdc
 
 # ---- 2. input delays ----
 # Allow ~10% of the period for upstream logic on every data/control input.
