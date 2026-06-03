@@ -2,8 +2,10 @@
 
 > Run the **functional** steps (1–3) from `01_RTL/` with a local Verilator
 > install or the front-end conda env. Run the **back-end** steps (4–6:
-> synth/STA/gate-sim) from `02_SYN/` and `03_GATE/` inside the EDA container
-> (`make shell`) — they need Yosys, OpenSTA, and the SKY130 PDK.
+> synth/STA/gate-sim) from `02_SYN/` and `03_GATE/` — these need **Yosys + OpenSTA**
+> (the EDA container via `make shell`, or the conda `full` profile). You do **not**
+> need to install a PDK: the SKY130 std-cell + SRAM libraries are committed in the
+> repo under [`pdk/`](../../pdk/) and the Makefiles pick them up automatically.
 
 ## 0. Orient yourself
 

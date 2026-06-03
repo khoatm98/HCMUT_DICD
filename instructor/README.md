@@ -51,7 +51,8 @@ released testbench (expects `RESULT: PASS`).
 
 ## Tool notes
 - Front-end checks (HW1/HW2, and HW3 functional) run locally with Verilator or
-  Icarus; **HW3 synthesis** also runs on the conda env (Yosys + a `ciel` PDK).
+  Icarus; **HW3 synthesis + STA + gate-sim** run with just Yosys/OpenSTA — the
+  SKY130 std-cell + SRAM libraries are committed in-repo (`pdk/`), no PDK install.
 - STA / power / **APR** (incl. the HW3/HW5 **SRAM macro** placement) need the
   Docker EDA image; the macro `.lib`/`.lef`/`.gds` paths are image-dependent
   (`SRAM_MACRO_DIR` in `hw3-synth/02_SYN` and `hw5-apr/04_APR`).
