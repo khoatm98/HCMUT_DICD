@@ -37,7 +37,15 @@ module conv_engine_tb;
     wire                    o_done;
     wire                    o_busy;
 
+    // The synthesized GATE netlist has no parameters (synthesis resolves them to
+    // constants), so only pass parameter overrides for RTL sim. For gate sim
+    // (FUNCTIONAL defined by 03_GATE) instantiate plainly -- the netlist already
+    // bakes in WIDTH=16/FRAC=10/IMG=8, which match the localparams above.
+`ifdef FUNCTIONAL
+    conv_engine dut (
+`else
     conv_engine #(.WIDTH(WIDTH), .FRAC(FRAC), .IMG(IMG)) dut (
+`endif
         .clk(clk), .rst_n(rst_n),
         .i_valid(i_valid), .i_data(i_data),
         .o_valid(o_valid), .o_data(o_data), .o_done(o_done), .o_busy(o_busy)
