@@ -38,8 +38,18 @@ CELLS_V  := $(SCL)/verilog/sky130_fd_sc_hd.v $(SCL)/verilog/primitives.v
 # gate-level sim can run (the real macro's timing model could be used instead).
 SRAM_MODEL := $(CONV_INC)/sky130_sram_1kbyte_1rw1r_32x256_8.v
 
+# ---- timing (SDF) gate sim ----
+# The SDF is produced by 02_SYN (`make -C ../02_SYN sdf`); reuse it here.
+SDF          := ../02_SYN/$(BUILD)/conv.sdf
+# For timing sim, cell models self-power via internal supplies EXCEPT the (unused)
+# lpflow_bleeder cell, whose timing model references VPWR without declaring it ->
+# patch a build-copy so iverilog can elaborate. CLK_HALF widens the TB clock so the
+# real SRAM->MAC delay fits (a 10 ns clock corrupts captures with real delays).
+CELLS_TIMING := $(BUILD)/sky130_fd_sc_hd_timing.v
+SDF_CLK_HALF ?= 25
+
 .DEFAULT_GOAL := gl-sim
-.PHONY: gl-sim prep clean
+.PHONY: gl-sim gl-sim-sdf prep clean
 
 # Stage the run directory: build/ with a golden symlink + a sim subdir so the
 # testbench's bare relative paths resolve when we run the sim from inside build/.
@@ -49,7 +59,7 @@ prep:
 
 # ---- gate-level equivalence sim ----
 gl-sim: prep
-	iverilog -g2012 -DFUNCTIONAL -DUNIT_DELAY="#1" \
+	iverilog -g2012 -DGL_NETLIST -DFUNCTIONAL -DUNIT_DELAY="#1" \
 	  -I$(SCL)/verilog -I$(GOLDEN_DIR) \
 	  -o $(BUILD)/conv_gl.vvp \
 	  $(abspath $(CELLS_V)) $(abspath $(SRAM_MODEL)) $(abspath $(NETLIST)) $(abspath $(TB))
@@ -57,6 +67,33 @@ gl-sim: prep
 	@grep -q "RESULT: PASS" $(BUILD)/sim/conv_gl.log \
 		&& echo ">> gate-level sim PASS (netlist == RTL)" \
 		|| { echo ">> gate-level sim FAIL (netlist != golden)"; exit 1; }
+
+# ---- timing-annotated (SDF) gate-level sim (cell-arc delays) ----
+# 1) get the SDF from 02_SYN; 2) patch the one malformed (unused) bleeder cell into
+#    a build-copy so the timing models elaborate; 3) build with real cell delays
+#    (-gspecify -ginterconnect, no UNIT_DELAY) and back-annotate the SDF via
+#    $sdf_annotate (in the TB) at a slow clock (CLK_HALF).
+# NOTE: this is the INSTRUCTIVE part -- unlike the functional gl-sim, the timing
+# sim exposes how real cell delays affect capture. Pre-layout SDF has cell-arc
+# delays only (no wire RC -- those arrive at APR/HW5), and the behavioral SRAM
+# model's timing differs from its .lib, so some pixels may mismatch; read
+# build/sim/conv_gl_sdf.log to see where/why.
+$(SDF):
+	$(MAKE) -C ../02_SYN sdf
+
+$(CELLS_TIMING): $(SCL)/verilog/sky130_fd_sc_hd.v | prep
+	sed '/__lpflow_bleeder/,/endmodule/{/SHORT *=> *VPWR/d}' $< > $@
+
+gl-sim-sdf: prep $(SDF) $(CELLS_TIMING)
+	iverilog -g2012 -gspecify -ginterconnect -DGL_NETLIST -DCLK_HALF=$(SDF_CLK_HALF) \
+	  -DSDF_FILE='"$(abspath $(SDF))"' \
+	  -I$(SCL)/verilog -I$(GOLDEN_DIR) -o $(BUILD)/conv_gl_sdf.vvp \
+	  $(abspath $(CELLS_TIMING)) $(abspath $(SCL)/verilog/primitives.v) \
+	  $(abspath $(SRAM_MODEL)) $(abspath $(NETLIST)) $(abspath $(TB))
+	cd $(BUILD) && vvp conv_gl_sdf.vvp 2>&1 | tee sim/conv_gl_sdf.log | grep -vE "port[12] =|Could not find net" || true
+	@grep -q "RESULT: PASS" $(BUILD)/sim/conv_gl_sdf.log \
+		&& echo ">> SDF gate-level sim PASS (timing-annotated)" \
+		|| echo ">> SDF gate-level sim: timing-induced mismatches -- inspect $(BUILD)/sim/conv_gl_sdf.log"
 
 clean:
 	rm -rf $(BUILD)

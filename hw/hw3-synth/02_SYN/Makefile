@@ -38,12 +38,19 @@ SRAM_MODEL := $(CONV_INC)/sky130_sram_1kbyte_1rw1r_32x256_8.v
 NETLIST  := $(BUILD)/conv_netlist.v
 AREA_RPT := $(BUILD)/conv_area.rpt
 STA_RPT  := $(BUILD)/conv_sta.rpt
+SDF      := $(BUILD)/conv.sdf
+
+# LEF paths are only needed if write_sdf runs under OpenROAD; standalone OpenSTA
+# builds the timing graph from liberty alone (write_sdf.tcl reads LEF only if it can).
+TECH_LEF  := $(SCL)/techlef/sky130_fd_sc_hd__nom.tlef
+SC_LEF    := $(SCL)/lef/sky130_fd_sc_hd.lef
+MACRO_LEF := $(SRAM_MACRO_DIR)/lef/sky130_sram_1kbyte_1rw1r_32x256_8.lef
 
 .DEFAULT_GOAL := all
-.PHONY: all synth sta clean
+.PHONY: all synth sta sdf clean
 
-all: synth sta
-	@echo ">> HW3 02_SYN complete: netlist + STA"
+all: synth sta sdf
+	@echo ">> HW3 02_SYN complete: netlist + STA + SDF"
 
 # ---- Yosys synthesis -> SKY130 gate-level netlist + area/cell report ----
 synth: $(NETLIST)
@@ -61,6 +68,18 @@ sta: $(NETLIST) $(SDC)
 	TOP=$(DESIGN) LIB="$(LIB)" MACRO_LIBS="$(SRAM_LIB)" NETLIST=$(NETLIST) SDC=$(SDC) \
 	  $(STA_BIN) -no_init -exit $(COMMON)/flow/sta.tcl | tee $(STA_RPT)
 	@echo ">> STA report: $(STA_RPT)"
+
+# ---- SDF (Standard Delay Format) -- cell-arc delays from the liberty ----
+# Pre-layout: no wire parasitics yet (those are added at APR/HW5). Consumed by
+# 03_GATE `make gl-sim-sdf` ($sdf_annotate) and usable for SDF-annotated STA.
+sdf: $(SDF)
+$(SDF): $(NETLIST) $(SDC)
+	@mkdir -p $(BUILD)
+	TECH_LEF="$(TECH_LEF)" SC_LEF="$(SC_LEF)" MACRO_LEFS="$(MACRO_LEF)" \
+	  LIB="$(LIB)" MACRO_LIBS="$(SRAM_LIB)" NETLIST=$(NETLIST) TOP=$(DESIGN) \
+	  SDC=$(SDC) SDF_OUT=$(SDF) \
+	  $(STA_BIN) -no_init -exit $(COMMON)/flow/write_sdf.tcl
+	@echo ">> SDF (cell-arc delays) -> $(SDF)"
 
 clean:
 	rm -rf $(BUILD)

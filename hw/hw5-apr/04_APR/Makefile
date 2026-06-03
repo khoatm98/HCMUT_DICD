@@ -22,8 +22,23 @@ CONV_DIR := ../../../../common/rtl/conv      # relative to src/ (04_APR/src -> r
 include ../../../common/flow/pdk.mk
 SRAM           := sky130_sram_1kbyte_1rw1r_32x256_8
 
+# ---- conda back-end (no Docker): Yosys -> OpenROAD APR -> Magic GDS ----
+SCL        := $(STD_CELL_DIR)
+LIB        := $(SCL)/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+TECH_LEF   := $(SCL)/techlef/sky130_fd_sc_hd__nom.tlef
+SC_LEF     := $(SCL)/lef/sky130_fd_sc_hd.lef
+MACRO_LEF  := $(SRAM_MACRO_DIR)/lef/$(SRAM).lef
+MACRO_GDS  := $(SRAM_MACRO_DIR)/gds/$(SRAM).gds
+MAGIC_TECH := $(PDK_ROOT)/sky130A/libs.tech/magic/sky130A.tech
+SDC        := ../../hw3-synth/02_SYN/conv.sdc           # reuse the conv engine constraints
+CONV_RTL   := ../../../common/rtl/conv
+SRAM_MODEL := $(CONV_RTL)/sky130_sram_1kbyte_1rw1r_32x256_8.v
+NETLIST    := build/conv_netlist.v
+DEF        := build/conv.def
+GDS        := build/conv.gds
+
 .DEFAULT_GOAL := apr
-.PHONY: prep apr inspect klayout summary clean
+.PHONY: prep apr apr-conda gui inspect klayout summary clean
 
 # Populate src/ from the canonical conv RTL (symlinks -> single source of truth:
 # APR runs the SAME engine verified in HW3) and stage the SRAM macro views.
@@ -47,6 +62,34 @@ apr: prep
 	@mkdir -p build
 	PDK_ROOT="$(PDK_ROOT)" bash $(COMMON)/openlane_run.sh ./config.json 2>&1 | tee build/apr.log
 	@echo ">> APR done. Inspect intermediate stages with 'make inspect'."
+
+# ---- conda back-end: RTL -> GDS with Yosys + OpenROAD + Magic (no Docker) ----
+#   make apr-conda      synth -> floorplan/place/CTS/route (OpenROAD) -> GDS (Magic)
+#   make gui            open the routed layout in Magic (needs X: ssh -Y / VNC)
+apr-conda: $(GDS)
+	@echo ">> conda APR complete:  netlist=$(NETLIST)  def=$(DEF)  gds=$(GDS)"
+
+$(NETLIST): prep
+	@mkdir -p build
+	TOP=conv_engine RTL_FILES="src/conv_engine.v" INCDIRS="$(CONV_RTL)" LIB="$(LIB)" \
+	  BLACKBOX_FILES="$(SRAM_MODEL)" NETLIST_OUT=$(NETLIST) STAT_OUT=build/conv_area.rpt \
+	  yosys -c $(COMMON)/synth_sky130.tcl
+
+$(DEF): $(NETLIST) $(SDC)
+	TECH_LEF="$(TECH_LEF)" SC_LEF="$(SC_LEF)" MACRO_LEFS="$(MACRO_LEF)" \
+	  LIB="$(LIB)" MACRO_LIBS="$(SRAM_LIB)" NETLIST="$(NETLIST)" TOP=conv_engine \
+	  SDC=$(SDC) OUT_DEF=$(DEF) OUT_NETLIST=build/conv.apr.v MACRO_INSTS=u_img \
+	  openroad -no_init -exit $(COMMON)/apr_openroad.tcl 2>&1 | tee build/apr_conda.log
+
+$(GDS): $(DEF)
+	SC_LEF="$(SC_LEF)" MACRO_LEF="$(MACRO_LEF)" MACRO_GDS="$(MACRO_GDS)" \
+	  DEF="$(DEF)" TOP=conv_engine GDS_OUT=$(GDS) \
+	  magic -dnull -noconsole -T $(MAGIC_TECH) $(COMMON)/def2gds.tcl 2>&1 | tee build/def2gds.log
+
+gui:
+	@[ -f $(DEF) ] || { echo "No routed DEF -- run 'make apr-conda' first."; exit 1; }
+	SC_LEF="$(SC_LEF)" MACRO_LEF="$(MACRO_LEF)" DEF="$(DEF)" TOP=conv_engine \
+	  magic -T $(MAGIC_TECH) $(COMMON)/magic_view.tcl
 
 inspect:
 	@run=$$(ls -dt runs/*/ 2>/dev/null | head -1); \

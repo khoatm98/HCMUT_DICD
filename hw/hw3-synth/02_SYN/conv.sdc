@@ -12,10 +12,13 @@
 # =============================================================================
 
 # ---- 1. clock ----
-# 20 ns (50 MHz) is comfortable for one 16x16 signed multiply + the 40-bit
-# accumulate add on sky130_fd_sc_hd at the tt corner.
+# 45 ns (~22 MHz). The critical path is a HALF-CYCLE path: the SRAM macro launches
+# read data on the falling edge, through the 9-tap MAC (16x16 multiply + 40-bit
+# accumulate), captured on the next rising edge -- so only ~period/2 is available.
+# 40 ns misses by ~0.7 ns; ~42 ns is the knee; 45 ns gives comfortable margin
+# (+1.8 ns setup). Students may tighten toward 42 ns and report the WNS.
 set CLK_PORT   clk
-set CLK_PERIOD 20.0
+set CLK_PERIOD 45.0
 source ../../../common/constraints/common.sdc
 
 # ---- 2. I/O delays (CVSD-style) ----

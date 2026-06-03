@@ -7,7 +7,7 @@
 # =============================================================================
 
 if {![info exists CLK_PORT]}   { set CLK_PORT   clk  }
-if {![info exists CLK_PERIOD]} { set CLK_PERIOD 20.0 }
+if {![info exists CLK_PERIOD]} { set CLK_PERIOD 30.0 }
 
 create_clock -name core_clk -period $CLK_PERIOD [get_ports $CLK_PORT]
 

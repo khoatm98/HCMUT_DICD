@@ -23,6 +23,13 @@ module conv_engine_tb;
     localparam integer WIDTH = 16;
     localparam integer FRAC  = 10;
     localparam integer IMG   = 8;
+    // Clock half-period (ns). RTL/functional gate sim are zero/unit-delay, so the
+    // default 5 (10 ns) is fine. The SDF timing sim (03_GATE gl-sim-sdf) overrides
+    // this with -DCLK_HALF=25 so the clock is slower than the real cell delays
+    // (the SRAM->MAC path needs ~41 ns), otherwise timing violations corrupt data.
+`ifndef CLK_HALF
+ `define CLK_HALF 5
+`endif
 `include "conv_count.vh"               // N_CASES, KCNT, ICNT, NPIX (generated)
 
     localparam integer NIN     = KCNT + ICNT;      // words streamed in per case
@@ -39,9 +46,10 @@ module conv_engine_tb;
 
     // The synthesized GATE netlist has no parameters (synthesis resolves them to
     // constants), so only pass parameter overrides for RTL sim. For gate sim
-    // (FUNCTIONAL defined by 03_GATE) instantiate plainly -- the netlist already
-    // bakes in WIDTH=16/FRAC=10/IMG=8, which match the localparams above.
-`ifdef FUNCTIONAL
+    // (GL_NETLIST defined by 03_GATE, both the functional and SDF variants)
+    // instantiate plainly -- the netlist bakes in WIDTH=16/FRAC=10/IMG=8, which
+    // match the localparams above.
+`ifdef GL_NETLIST
     conv_engine dut (
 `else
     conv_engine #(.WIDTH(WIDTH), .FRAC(FRAC), .IMG(IMG)) dut (
@@ -51,6 +59,13 @@ module conv_engine_tb;
         .o_valid(o_valid), .o_data(o_data), .o_done(o_done), .o_busy(o_busy)
     );
 
+    // Timing-annotated gate sim: 03_GATE's gl-sim-sdf passes -DSDF_FILE=... and
+    // builds the cell models WITH delays (no UNIT_DELAY) so these SDF cell-arc
+    // delays take effect. (Functional gl-sim leaves SDF_FILE undefined.)
+`ifdef SDF_FILE
+    initial $sdf_annotate(`SDF_FILE, dut);
+`endif
+
     // testbench-owned golden memories
     reg [WIDTH-1:0] stim [0:N_CASES*NIN-1];
     reg [WIDTH-1:0] exp  [0:N_CASES*NPIX-1];
@@ -58,7 +73,7 @@ module conv_engine_tb;
 
     integer cse, i, k, errors, ngot, cyc;
 
-    always #5 clk = ~clk;
+    always #(`CLK_HALF) clk = ~clk;
 
     initial begin
         $dumpfile("sim/conv_engine.vcd");
