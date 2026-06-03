@@ -8,6 +8,10 @@ sim/
 obj_dir/
 **/obj_dir/
 
+# ---- Generated golden vectors (reproduced deterministically by `make vectors`) ----
+**/golden/*.hex
+**/golden/*.vh
+
 # ---- Synthesis / STA generated outputs ----
 *.netlist.v
 *_syn.v

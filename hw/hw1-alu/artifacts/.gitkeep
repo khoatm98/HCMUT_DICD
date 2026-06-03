@@ -1,0 +1,5 @@
+# Put your HW1 submission artifacts here:
+#   - completed rtl/alu.v (or a copy)
+#   - the make sim / make vsim log showing "RESULT: PASS"
+#   - one annotated GTKWave screenshot (e.g. an FXMUL with saturation)
+#   - a short note on how you handled rounding and saturation
