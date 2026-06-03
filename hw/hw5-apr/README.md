@@ -5,8 +5,10 @@ flow with **LibreLane/OpenROAD**: floorplan → power planning → placement →
 clock-tree synthesis → routing → DRC/LVS → **GDSII**, inspecting each stage and
 viewing the layout in KLayout.
 
-> APR is the heaviest stage — run in **Docker** (`make hw5`). ~8 GB RAM
+> APR is the heaviest stage — easiest in **Docker** (`make hw5`). ~8 GB RAM
 > recommended. Conda alternative (OpenROAD-flow-scripts): see [INSTRUCTIONS.md](INSTRUCTIONS.md).
+> No PDK install needed — the SKY130 libraries (incl. `libs.tech`) are in-repo
+> under [`pdk/`](../../pdk/); you just need the APR tools.
 
 ## Read in order
 [OBJECTIVES.md](OBJECTIVES.md) · [SPEC.md](SPEC.md) · [INSTRUCTIONS.md](INSTRUCTIONS.md) · [RUBRIC.md](RUBRIC.md)

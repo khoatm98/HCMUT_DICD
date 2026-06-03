@@ -45,7 +45,7 @@ prep:
 
 apr: prep
 	@mkdir -p build
-	bash $(COMMON)/openlane_run.sh ./config.json 2>&1 | tee build/apr.log
+	PDK_ROOT="$(PDK_ROOT)" bash $(COMMON)/openlane_run.sh ./config.json 2>&1 | tee build/apr.log
 	@echo ">> APR done. Inspect intermediate stages with 'make inspect'."
 
 inspect:

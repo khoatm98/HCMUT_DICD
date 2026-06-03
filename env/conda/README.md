@@ -38,7 +38,7 @@ make smoke EDA_ENV=conda                   # sim -> synth -> STA  (no APR; see b
 | HW3 STA, HW4 power | **openroad** (embeds OpenSTA) + in-repo `pdk/` | ✅ the Makefiles auto-pick `sta` if present, else `openroad` (`STA_BIN`) |
 | HW3/HW4 DRC/LVS | magic / netgen | ✅ |
 | GDS viewing | KLayout | ➕ separate install (not in env) — see *GDS viewing* |
-| APR (HW5, Final) | OpenROAD-flow-scripts (ORFS) + **full** PDK | ⚠️ needs a COMPLETE PDK (`open_pdks`), not the in-repo subset; LibreLane's non-Docker path is Nix, so on conda we use ORFS |
+| APR (HW5, Final) | LibreLane (Docker) / ORFS (conda) + **in-repo `pdk/`** | ✅ PDK ships in-repo (3 corners + `libs.tech`) — no PDK install; you just need the APR *tools*. LibreLane's non-Docker path is Nix, so on conda we use ORFS |
 
 Run back-end stages by activating the env and using the per-stage dirs, e.g.:
 ```bash

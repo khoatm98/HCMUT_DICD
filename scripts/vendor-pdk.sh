@@ -31,18 +31,29 @@ mkdir -p "$DST"
 HD=libs.ref/sky130_fd_sc_hd
 SR=libs.ref/sky130_sram_macros
 
-# The minimal subset: std-cell tt liberty + verilog models + LEF/techLEF (synth/
-# STA/gate/APR), and the SRAM macro views (lib/lef/gds). Globs tolerate naming
-# differences across PDK builds; missing files are warned, not fatal.
+# The course subset:
+#  - std cells: 3 sign-off corners (tt typical + ff fastest + ss slowest) +
+#    verilog models + LEF/techLEF (synth/STA/gate-sim/power) AND the APR views
+#    gds/cdl + the "ef" LEF;
+#  - the SRAM macro views (lib/lef/gds/verilog);
+#  - SOURCES (PDK provenance stamp).
+# Globs tolerate naming differences across PDK builds; missing files are warned.
 want=(
   "$HD/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
+  "$HD/lib/sky130_fd_sc_hd__ff_n40C_1v95.lib"
+  "$HD/lib/sky130_fd_sc_hd__ss_100C_1v60.lib"
   "$HD/verilog/sky130_fd_sc_hd.v"
   "$HD/verilog/primitives.v"
   "$HD/lef/sky130_fd_sc_hd.lef"
+  "$HD/lef/sky130_ef_sc_hd.lef"
   "$HD/techlef/"*.tlef
+  "$HD/gds/sky130_fd_sc_hd.gds"
+  "$HD/cdl/sky130_fd_sc_hd.cdl"
   "$SR/lib/sky130_sram_1kbyte_1rw1r_32x256_8"*.lib
   "$SR/lef/sky130_sram_1kbyte_1rw1r_32x256_8.lef"
   "$SR/gds/sky130_sram_1kbyte_1rw1r_32x256_8.gds"
+  "$SR/verilog/sky130_sram_1kbyte_1rw1r_32x256_8"*.v
+  "SOURCES"
 )
 n=0
 ( cd "$SRC/sky130A"
@@ -59,6 +70,19 @@ n=0
     done
   done
   echo "$n" > /tmp/.vendor_pdk_n )
+
+# libs.tech: the tool decks APR needs (magic/klayout/netgen/openlane/combined).
+# Skip the analog/schematic ones (ngspice/xschem/irsim/qflow/xcircuit). These use
+# $PDK_ROOT internally, so they are path-portable once vendored.
+echo ">> libs.tech (APR tool decks):"
+for t in magic klayout netgen openlane combined; do
+  if [ -d "$SRC/sky130A/libs.tech/$t" ]; then
+    mkdir -p "$DST/libs.tech"; cp -a "$SRC/sky130A/libs.tech/$t" "$DST/libs.tech/"
+    echo "   + libs.tech/$t"
+  else
+    echo "   (skip, not found: libs.tech/$t)"
+  fi
+done
 
 echo ">> done. Vendored size:"; du -sh "$REPO/pdk" 2>/dev/null || true
 echo ">> commit it:  git add pdk/ && git commit -m 'vendor SKY130 lib subset'"

@@ -1,7 +1,11 @@
 # HW5 — Step-by-step instructions
 
-> APR is heavy → use **Docker**: from the repo root `make shell`, then
+> APR is heavy → easiest in **Docker**: from the repo root `make shell`, then
 > `cd hw/hw5-apr` (or just `make hw5` to run the default flow in the container).
+> You do **not** need to install a PDK — the SKY130 std cells, SRAM macro, and the
+> `libs.tech` APR decks are committed in [`pdk/`](../../pdk/) (3 sign-off corners)
+> and the `04_APR` Makefile points LibreLane at them automatically. You only need
+> the APR **tools** (the Docker image, or LibreLane via Nix / OpenROAD-flow on conda).
 
 ## 1. Run the flow
 

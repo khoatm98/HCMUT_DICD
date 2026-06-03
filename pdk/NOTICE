@@ -7,14 +7,26 @@ back-end flow (synth / STA / gate-sim / power) is self-contained. Attribution an
 licenses:
 
 -------------------------------------------------------------------------------
-sky130A/libs.ref/sky130_fd_sc_hd/  --  high-density standard-cell library (SUBSET)
+sky130A/libs.ref/sky130_fd_sc_hd/  +  sky130A/libs.tech/  --  std cells + tech
 -------------------------------------------------------------------------------
-Views:   lib/sky130_fd_sc_hd__tt_025C_1v80.lib   (typical-corner timing; synth + STA)
-         verilog/sky130_fd_sc_hd.v, verilog/primitives.v  (cell models; gate-sim)
-         lef/sky130_fd_sc_hd.lef                  (abstract)
-         techlef/sky130_fd_sc_hd__{min,nom,max}.tlef (+ rram variants)
-This is the MINIMAL subset the flow reads (one timing corner) -- NOT the whole
-library (no GDS, no other corners). Full APR still needs a complete external PDK.
+A subset of the high-density standard-cell library + the PDK tech decks, enough
+to run the WHOLE digital flow in-repo: synth, STA, gate-sim, power, AND APR
+(RTL->GDSII). It is still a SUBSET (3 sign-off corners, not all 18; no analog
+libs.tech tools) -- see the size/scope note at the bottom.
+
+sky130_fd_sc_hd views:
+  lib/sky130_fd_sc_hd__tt_025C_1v80.lib   typical  (LIB_SYNTH/PL/STA)
+  lib/sky130_fd_sc_hd__ff_n40C_1v95.lib   fastest  (LIB_FASTEST -> hold/min-corner STA)
+  lib/sky130_fd_sc_hd__ss_100C_1v60.lib   slowest  (LIB_SLOWEST -> setup/max-corner STA)
+  verilog/sky130_fd_sc_hd.v, verilog/primitives.v   cell models (gate-sim)
+  lef/sky130_fd_sc_hd.lef, lef/sky130_ef_sc_hd.lef  abstracts (placement/route)
+  techlef/sky130_fd_sc_hd__{min,nom,max}.tlef (+ rram)   tech LEF
+  gds/sky130_fd_sc_hd.gds                 std-cell layout (final GDS merge)
+  cdl/sky130_fd_sc_hd.cdl                 std-cell netlist (LVS)
+
+libs.tech/ (APR tool decks): magic, klayout, netgen, openlane, combined. These
+reference the PDK via $PDK_ROOT, so they are path-portable once vendored. (The
+analog/schematic decks ngspice/xschem/irsim/qflow/xcircuit are NOT included.)
 
 Origin:  SkyWater SKY130 PDK, assembled by open_pdks.
          (c) 2020 The SkyWater PDK Authors. Licensed under the Apache License 2.0.
@@ -25,9 +37,14 @@ Obtained via:
 
 SHA-256 (as vendored):
   8e78e14442062dba34d414fca6490b2f6b96038d4510d1438ca44fee31487135  lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+  fb61d91c55a7f85b1989e8149d040b13ba5e7f5478f5bf0c3c16c5da30720139  lib/sky130_fd_sc_hd__ff_n40C_1v95.lib
+  9b24f0db3967ac67b4cae1f74bb480fd47922d18d0ed577e3c121739b412c361  lib/sky130_fd_sc_hd__ss_100C_1v60.lib
   12d5d6448ccf265c544d88402d5c10ab6de9bee8b8cde48eee1f31ea8c3c3e45  verilog/sky130_fd_sc_hd.v
   7d4b1441d06b0f2b9662befa675a0484d77149e04eb42a5f1fa2d4cfded7b2ce  verilog/primitives.v
   3a3ea4e9d0973402702764d897659e52fe3d413eb48c306cd811de40a75264fa  lef/sky130_fd_sc_hd.lef
+  46d4bfbcc9acbf3456e647827fcf4f401fae850e3f2debbe80e10874243972a1  lef/sky130_ef_sc_hd.lef
+  4a768b5b034669f43d45170e1b171fb05b1dbe31671b19e7add34b98a7f842c8  gds/sky130_fd_sc_hd.gds
+  c5ad822d02fcd67ce5c387346cd3f89f05e21624725825773d51a5ac338d7091  cdl/sky130_fd_sc_hd.cdl
 
 -------------------------------------------------------------------------------
 sky130A/libs.ref/sky130_sram_macros/  --  SRAM hard macro
@@ -56,6 +73,9 @@ SHA-256 (as vendored):
   88eaee9f0c480065545479143bfef1e3186a5d97e4a7f79b8c57ad57637cdfeb  verilog/sky130_sram_1kbyte_1rw1r_32x256_8.v
   7766c62acbe63ff4bdc897e63f60d2faccfb76204921aee4240ecc719933b730  verilog/sky130_sram_1kbyte_1rw1r_32x256_8.bb.v
 
-Note: this is a SUBSET sufficient for synth / STA / gate-sim / power. Full APR
-(HW5 / Final) still needs a COMPLETE external PDK (tech files, all cells, GDS) --
-fetch it with volare/ciel or the conda 'full' profile; see pdk/README.md.
+Note: this subset runs the FULL flow in-repo (synth, STA, gate-sim, power, and
+APR -> GDSII) for the course designs. It is still trimmed: 3 sign-off corners
+(tt/ff/ss) out of 18, only the digital libs.tech decks, and only the
+sky130_fd_sc_hd library. For full multi-corner sign-off, other cell libraries, or
+analog tools, fetch a COMPLETE PDK with volare/ciel or the conda 'full' profile;
+see pdk/README.md.
