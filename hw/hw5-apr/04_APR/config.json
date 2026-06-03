@@ -5,7 +5,20 @@
     "CLOCK_PORT": "clk",
     "CLOCK_PERIOD": 15,
     "PDK": "sky130A",
-    "FP_CORE_UTIL": 40,
-    "PL_TARGET_DENSITY_PCT": 50,
-    "RUN_LINTER": false
+    "FP_CORE_UTIL": 35,
+    "PL_TARGET_DENSITY_PCT": 45,
+    "RUN_LINTER": false,
+    "MACROS": {
+        "sky130_sram_1kbyte_1rw1r_32x256_8": {
+            "gds": ["dir::macros/sky130_sram_1kbyte_1rw1r_32x256_8.gds"],
+            "lef": ["dir::macros/sky130_sram_1kbyte_1rw1r_32x256_8.lef"],
+            "lib": {
+                "*": ["dir::macros/sky130_sram_1kbyte_1rw1r_32x256_8_TT_1p8V_25C.lib"]
+            },
+            "instances": {
+                "u_img": { "location": [20, 20], "orientation": "N" }
+            }
+        }
+    },
+    "PDN_MACRO_CONNECTIONS": ["u_img vccd1 vssd1 vccd1 vssd1"]
 }

@@ -29,8 +29,21 @@ with: `iverilog`, `verilator`, `gtkwave`, `yosys`, plus `make`/`python`.
 | Stage | conda (this env) | Docker |
 |-------|------------------|--------|
 | HW1, HW2 — simulation + waveforms | ✅ iverilog / verilator / gtkwave | ✅ |
-| HW3 — synthesis (Yosys) | ⚠️ needs the SKY130 liberty: add the PDK with `pip install ciel && ciel enable <sky130-commit>`, or use Docker | ✅ |
-| HW3 STA · HW4 power · HW5 APR | ❌ → use Docker | ✅ |
+| HW3 — **synthesis** (Yosys → SKY130 gates + area) | ✅ Yosys is in the env; fetch the PDK once with `ciel` (see below) | ✅ |
+| HW3 STA · HW4 power · HW5 APR | ❌ → use Docker (OpenSTA lives inside OpenROAD; OpenROAD/Magic/Netgen/KLayout don't cleanly solve on conda) | ✅ |
+
+### Synthesis on conda — fetch the PDK once
+Yosys ships in this env; it just needs the SKY130 liberty. `ciel` (pip, installed
+by the env) downloads a pinned PDK with no conda conflict:
+```bash
+conda run -n hcmut-eda ciel enable --pdk-root "$(conda run -n hcmut-eda printf %s "$CONDA_PREFIX")/share/pdk" <open_pdks-commit>
+```
+The activate hook already points `PDK_ROOT` there, so:
+```bash
+conda activate hcmut-eda
+cd hw/hw3-synth/02_SYN && make synth     # Yosys synthesis on conda
+```
+works. (STA / power / APR still use Docker.)
 
 `make smoke EDA_ENV=conda` runs the **simulation** smoke (Icarus + Verilator).
 For the full sim→synth→STA→APR→GDS flow, use `make smoke` (Docker).

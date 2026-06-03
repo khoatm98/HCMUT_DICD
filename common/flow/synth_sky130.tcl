@@ -11,6 +11,9 @@
 #   LIB          - path to the SKY130 liberty (.lib) file (required)
 #   NETLIST_OUT  - path to write the gate-level netlist   (required)
 #   INCDIRS      - optional space-separated `include search dirs
+#   BLACKBOX_FILES - optional .v files read as INTERFACE-ONLY blackboxes (hard
+#                    macros, e.g. an SRAM): read with `read_verilog -lib` so the
+#                    macro instance is preserved (not synthesized) in the netlist
 #   STAT_OUT     - optional path to write the area/cell report
 # =============================================================================
 yosys -import
@@ -24,6 +27,11 @@ set netlist   $::env(NETLIST_OUT)
 set incflags {}
 if {[info exists ::env(INCDIRS)]} {
     foreach d $::env(INCDIRS) { lappend incflags -I$d }
+}
+
+# ---- read macro blackboxes (interface only) so they survive synthesis ----
+if {[info exists ::env(BLACKBOX_FILES)]} {
+    foreach f $::env(BLACKBOX_FILES) { read_verilog -lib {*}$incflags $f }
 }
 
 # ---- read RTL ----

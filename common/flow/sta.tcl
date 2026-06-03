@@ -5,6 +5,8 @@
 #
 # Environment variables (set by the calling Makefile):
 #   LIB        - SKY130 liberty (.lib) file        (required)
+#   MACRO_LIBS - optional space-separated extra liberties for hard macros
+#                (e.g. the SRAM macro .lib) so the macro's timing is known
 #   NETLIST    - gate-level netlist (.v)           (required)
 #   TOP        - top module name                   (required)
 #   SDC        - timing constraints (.sdc)         (required)
@@ -14,6 +16,9 @@
 # =============================================================================
 
 read_liberty $env(LIB)
+if {[info exists env(MACRO_LIBS)]} {
+    foreach m $env(MACRO_LIBS) { read_liberty $m }
+}
 read_verilog $env(NETLIST)
 link_design  $env(TOP)
 read_sdc     $env(SDC)

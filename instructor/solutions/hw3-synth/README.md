@@ -98,9 +98,23 @@ released `blur_ramp` and `sobel_step` value.
 - The reference lints clean under `verilator --lint-only -Wall` with the
   width/unused waivers in the Makefile (benign intentional truncations in the
   index/accumulate arithmetic).
-- Yosys maps it to flip-flops for the kernel/image/result arrays + control plus
-  one multiplier's worth of combinational logic — **macro-free** (no SRAM), so
-  it is APR-ready for HW5.
+- Yosys maps the kernel/result flop arrays + control + one shared 16×16
+  multiplier to standard cells, and **blackboxes the SRAM macro**
+  (`sky130_sram_1kbyte_1rw1r_32x256_8`, the feature-map buffer) via
+  `BLACKBOX_FILES=` (`read_verilog -lib`). The netlist instantiates the macro,
+  which **HW5 places in APR**. STA reads the macro `.lib` (`MACRO_LIBS=`).
+
+## SRAM macro (integration lesson)
+- **Sim** uses the behavioral model
+  `common/rtl/conv/sky130_sram_1kbyte_1rw1r_32x256_8.v` (sim-only; the
+  01_RTL/03_GATE Makefiles add it to the compile). The macro read is
+  **synchronous** (1-cycle latency) — the classic student bug is treating it as
+  combinational (off-by-one), which the golden catches.
+- **`SRAM_LIB` (02_SYN)** and the macro views staged by HW5 `04_APR/make prep`
+  are IMAGE-DEPENDENT (the sky130 OpenRAM macros ship with OpenLane). Set
+  `SRAM_MACRO_DIR`/`SRAM_LIB` if your image stores them elsewhere. The back-end
+  steps are validated only in the container; the **functional** sim (behavioral
+  model) is what runs locally.
 - With `conv_ref.sdc` (20 ns / 50 MHz) the design closes timing with positive
   setup and hold slack at the tt corner; the critical path is the shared 16×16
   signed multiply into the 40-bit accumulate add. Students who instantiate a

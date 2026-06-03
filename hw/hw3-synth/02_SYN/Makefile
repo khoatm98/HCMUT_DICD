@@ -25,6 +25,13 @@ PDK_ROOT ?= /foss/pdks
 SCL      := $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd
 LIB      := $(SCL)/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
 
+# ---- SRAM hard macro: blackboxed in synthesis; its .lib gives STA the timing ----
+# The behavioral model supplies the interface for the blackbox; the macro's
+# liberty ships with the sky130 OpenRAM macros. ADJUST SRAM_LIB to your image
+# if the path differs (the macros are not in the base std-cell PDK).
+SRAM_MODEL := $(CONV_INC)/sky130_sram_1kbyte_1rw1r_32x256_8.v
+SRAM_LIB   ?= $(PDK_ROOT)/sky130A/libs.ref/sky130_sram_macros/lib/sky130_sram_1kbyte_1rw1r_32x256_8_TT_1p8V_25C.lib
+
 NETLIST  := $(BUILD)/conv_netlist.v
 AREA_RPT := $(BUILD)/conv_area.rpt
 STA_RPT  := $(BUILD)/conv_sta.rpt
@@ -40,6 +47,7 @@ synth: $(NETLIST)
 $(NETLIST): $(RTL)
 	@mkdir -p $(BUILD)
 	TOP=$(DESIGN) RTL_FILES="$(RTL)" INCDIRS="$(CONV_INC)" LIB="$(LIB)" \
+	  BLACKBOX_FILES="$(SRAM_MODEL)" \
 	  NETLIST_OUT=$(NETLIST) STAT_OUT=$(AREA_RPT) \
 	  yosys -c $(COMMON)/flow/synth_sky130.tcl
 	@echo ">> synthesized $(DESIGN) -> $(NETLIST)  (area: $(AREA_RPT))"
@@ -47,7 +55,7 @@ $(NETLIST): $(RTL)
 # ---- OpenSTA static timing of the netlist using conv.sdc ----
 sta: $(NETLIST) $(SDC)
 	@mkdir -p $(BUILD)
-	TOP=$(DESIGN) LIB="$(LIB)" NETLIST=$(NETLIST) SDC=$(SDC) \
+	TOP=$(DESIGN) LIB="$(LIB)" MACRO_LIBS="$(SRAM_LIB)" NETLIST=$(NETLIST) SDC=$(SDC) \
 	  sta -no_init -exit $(COMMON)/flow/sta.tcl | tee $(STA_RPT)
 	@echo ">> STA report: $(STA_RPT)"
 

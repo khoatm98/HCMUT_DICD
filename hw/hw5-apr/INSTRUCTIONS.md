@@ -38,8 +38,9 @@ lower `FP_CORE_UTIL` / `PL_TARGET_DENSITY_PCT` and re-run.
 ```bash
 make klayout        # opens the final GDS
 ```
-Find the flip-flop arrays (image/kernel/result storage) and the multiplier; note
-how much area the flops take.
+Find the **SRAM macro** (the big rectangular block — the feature-map buffer),
+the multiplier, and the kernel/result flops placed around it; note how the macro
+dominates the floorplan and how routing reaches its pins.
 
 ## 5. Submit (see [RUBRIC.md](RUBRIC.md))
 In `artifacts/`: screenshots (floorplan, congestion, routed layout), the DRC/LVS

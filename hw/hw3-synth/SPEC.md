@@ -110,23 +110,34 @@ The testbench samples `o_data` on **every** cycle `o_valid` is high and collects
 exactly `IMG*IMG` results — so your output latency (how many idle cycles after
 the stream) does not matter, only the **values, count, and order**.
 
-## Microarchitecture (small, synthesis- & APR-friendly — required)
-
-Keep the design **macro-free and modest** (HW5 places-and-routes it):
+## Microarchitecture (small + a memory macro — required)
 
 - **One shared multiplier**, driven by a **sequential 9-tap multiply-accumulate**
   — accumulate the nine products over several cycles per output pixel. Do **not**
   instantiate nine multipliers or a parallel adder tree.
 - A **4-state FSM**: `LOAD → COMPUTE → OUTPUT → DONE` (codes in `conv_defs.vh`).
-- On-chip **flop arrays**: 9-word kernel, `IMG*IMG`-word image, `IMG*IMG`-word
-  result. **No SRAM macros** (load them by streaming).
-- **Active-low synchronous reset**; **no latches** (assign every reg on every
-  path — synthesis will complain otherwise).
+- The **feature map lives in a SKY130 OpenRAM SRAM hard macro**
+  (`sky130_sram_1kbyte_1rw1r_32x256_8`), **not** a flop array — this is the
+  memory-macro integration lesson (synthesis blackboxes it; HW5 APR places it).
+  The 9-word kernel and the result buffer stay in flops.
+- **Synchronous (registered) SRAM read.** The macro samples the address on a
+  clock edge and the data is valid the **next** cycle, so each tap runs in two
+  phases: **ISSUE** (drive the read address — done *combinationally*) then
+  **ACCUMULATE** (the data is ready → multiply-accumulate). Write the 64 pixels
+  into the SRAM during LOAD (port 0); read during COMPUTE (port 1).
+- **Active-low synchronous reset**; **no latches**.
 
-The starter `01_RTL/conv_engine.v` provides the FSM scaffolding, the LOAD phase,
-and the OUTPUT/DONE phases. You implement the **COMPUTE** datapath: the tap →
-(dr,dc) neighbour mapping with zero padding, the shared multiplier, the
-sequential accumulate, and the per-pixel round-half-up + saturate.
+The starter `01_RTL/conv_engine.v` provides the SRAM instance + its combinational
+control, the tap → (dr,dc) zero-padded mapping, the datapath wires, and the
+LOAD/OUTPUT/DONE phases. You implement the **COMPUTE accumulate**: use the read
+pixel, accumulate the nine products, and write the per-pixel round-half-up +
+saturate result.
+
+> **Why an SRAM?** A real image/feature buffer is on-chip SRAM, and integrating a
+> hard macro (blackbox in synthesis, place + power-connect in APR) is a core
+> back-end skill (and what NTU CVSD's HW3 exercises). For simulation a behavioral
+> model (`common/rtl/conv/sky130_sram_1kbyte_1rw1r_32x256_8.v`) stands in for the
+> macro; synthesis/APR use the real macro's `.lib`/`.lef`/`.gds`.
 
 ## The back-end half of HW3 (synthesis / equivalence / STA)
 

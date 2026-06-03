@@ -25,9 +25,12 @@ make klayout        # open the final GDS in KLayout
 | `runs/<tag>/...` | per-stage outputs (floorplan, placement, CTS, routed DEF, GDS, reports) |
 | `artifacts/` | floorplan/congestion/layout screenshots + your write-up |
 
-The APR target is the **macro-free** `conv_engine` (memory is on-chip flops, no
-SRAM macros), so it's a clean standard-cell block — `src/` is symlinked from
-`common/rtl/conv`. The per-design `config.json` lives beside the design (the
-OpenLane convention). You pass with a **DRC-clean, LVS-matching GDSII** that
-meets post-route timing, plus an explanation of the floorplan/congestion and how
-the multiplier + flop arrays land in the layout.
+The APR target is the HW3 `conv_engine`: standard cells (a shared multiplier +
+kernel/result flops + control) **plus one SKY130 OpenRAM SRAM macro** (the
+feature-map buffer) — so this is a real **mixed std-cell + macro** flow (place
+the macro, build the PDN around it, route to it), still laptop-sized. `make prep`
+symlinks the design (`src/`) from `common/rtl/conv` and the macro views
+(`macros/`) from the PDK; `config.json` (`MACROS`/`PDN_MACRO_CONNECTIONS`) pins
+the macro. You pass with a **DRC-clean, LVS-matching GDSII** that meets post-route
+timing, plus an explanation of the floorplan/congestion and where the macro,
+multiplier, and flops land.

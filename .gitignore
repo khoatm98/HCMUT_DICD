@@ -24,9 +24,10 @@ obj_dir/
 runs/
 **/runs/
 
-# ---- APR src/ dirs are populated from common/rtl by `make prep` (symlinks) ----
+# ---- APR src/ + macro views are populated by `make prep` (symlinks) ----
 hw/hw5-apr/04_APR/src/*.v
 hw/hw5-apr/04_APR/src/*.vh
+hw/hw5-apr/04_APR/macros/
 
 # ---- Physical layout (regenerable) ----
 *.gds

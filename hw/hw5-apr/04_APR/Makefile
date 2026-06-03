@@ -14,16 +14,33 @@
 COMMON   := ../../../common/flow
 CONV_DIR := ../../../../common/rtl/conv      # relative to src/ (04_APR/src -> repo root)
 
+# The conv engine instantiates one SRAM hard macro; APR needs its .lef/.gds/.lib.
+# The sky130 OpenRAM macros ship with OpenLane; ADJUST this to your image if the
+# path differs (config.json reads them from dir::macros/).
+PDK_ROOT       ?= /foss/pdks
+SRAM_MACRO_DIR ?= $(PDK_ROOT)/sky130A/libs.ref/sky130_sram_macros
+SRAM           := sky130_sram_1kbyte_1rw1r_32x256_8
+
 .DEFAULT_GOAL := apr
 .PHONY: prep apr inspect klayout summary clean
 
 # Populate src/ from the canonical conv RTL (symlinks -> single source of truth:
-# APR runs the SAME engine verified in HW3).
+# APR runs the SAME engine verified in HW3) and stage the SRAM macro views.
 prep:
-	@mkdir -p src
+	@mkdir -p src macros
 	@ln -sf $(CONV_DIR)/conv_engine.v src/conv_engine.v
 	@ln -sf $(CONV_DIR)/conv_defs.vh  src/conv_defs.vh
 	@echo ">> src/ populated:"; ls -l src/*.v src/*.vh
+	@# Stage the SRAM macro views (best-effort: paths are image-dependent).
+	@for ext in gds lef; do \
+	  f=$$(find $(SRAM_MACRO_DIR) -name "$(SRAM).$$ext" 2>/dev/null | head -1); \
+	  [ -n "$$f" ] && ln -sf "$$f" macros/$(SRAM).$$ext || \
+	    echo "   NOTE: $(SRAM).$$ext not found under $(SRAM_MACRO_DIR) -- set SRAM_MACRO_DIR"; \
+	done
+	@f=$$(find $(SRAM_MACRO_DIR) -name "$(SRAM)_TT*1p8V*25C.lib" 2>/dev/null | head -1); \
+	  [ -n "$$f" ] && ln -sf "$$f" macros/$(SRAM)_TT_1p8V_25C.lib || \
+	    echo "   NOTE: $(SRAM) .lib not found -- set SRAM_MACRO_DIR; config.json expects macros/$(SRAM)_TT_1p8V_25C.lib"
+	@echo ">> macros/ (for APR macro placement):"; ls -l macros/ 2>/dev/null || true
 
 apr: prep
 	@mkdir -p build

@@ -14,13 +14,21 @@ make klayout      # view the GDS
 ```
 
 ## What to expect
-- **Macro-free, small block:** image/kernel/result are flop arrays + one shared
-  16×16 multiplier, so it's all standard cells — places and routes quickly on a
-  laptop. The floorplan is dominated by the flop arrays; the clock tree fans out
-  to them.
-- **DRC/LVS:** should be clean/match for this size at sane utilization
-  (`FP_CORE_UTIL` ~40, density ~50). If a student hits DRC/congestion, the fix is
-  lower utilization/density.
+- **Mixed std-cell + one SRAM macro:** the conv engine has a shared 16×16
+  multiplier + kernel/result flops **and one OpenRAM SRAM macro**
+  (`sky130_sram_1kbyte_1rw1r_32x256_8`, the feature map). So this is a real macro
+  flow — place the macro, build the PDN around it, route to it — but small enough
+  to finish on a laptop. The floorplan shows the macro as one block with cells
+  around it.
+- **Macro setup:** `make prep` symlinks the macro `.lef`/`.gds`/`.lib` into
+  `04_APR/macros/` from `SRAM_MACRO_DIR` (the sky130 OpenRAM macros that ship with
+  OpenLane). `config.json` `MACROS` pins the placement (instance `u_img`) and
+  `PDN_MACRO_CONNECTIONS` wires its power. **Adjust `SRAM_MACRO_DIR` / the macro
+  paths to your image** — these are image-dependent and not validatable outside
+  the container.
+- **DRC/LVS:** should be clean/match at sane utilization (`FP_CORE_UTIL` ~35,
+  density ~45 — lower than a pure std-cell block to leave room around the macro).
+  If a student hits DRC/congestion, lower utilization/density or move the macro.
 - **Timing:** post-route slack should be comfortably ≥ 0 at the HW3-class clock
   (the per-cycle logic is a single multiply-accumulate step).
 

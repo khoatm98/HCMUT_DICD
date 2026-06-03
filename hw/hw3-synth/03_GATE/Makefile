@@ -33,6 +33,9 @@ BUILD := build
 PDK_ROOT ?= /foss/pdks
 SCL      := $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd
 CELLS_V  := $(SCL)/verilog/sky130_fd_sc_hd.v $(SCL)/verilog/primitives.v
+# The netlist instantiates the SRAM macro; supply its behavioral model so the
+# gate-level sim can run (the real macro's timing model could be used instead).
+SRAM_MODEL := $(CONV_INC)/sky130_sram_1kbyte_1rw1r_32x256_8.v
 
 .DEFAULT_GOAL := gl-sim
 .PHONY: gl-sim prep clean
@@ -48,7 +51,7 @@ gl-sim: prep
 	iverilog -g2012 -DFUNCTIONAL -DUNIT_DELAY="#1" \
 	  -I$(SCL)/verilog -I$(GOLDEN_DIR) \
 	  -o $(BUILD)/conv_gl.vvp \
-	  $(abspath $(CELLS_V)) $(abspath $(NETLIST)) $(abspath $(TB))
+	  $(abspath $(CELLS_V)) $(abspath $(SRAM_MODEL)) $(abspath $(NETLIST)) $(abspath $(TB))
 	cd $(BUILD) && vvp conv_gl.vvp | tee sim/conv_gl.log
 	@grep -q "RESULT: PASS" $(BUILD)/sim/conv_gl.log \
 		&& echo ">> gate-level sim PASS (netlist == RTL)" \

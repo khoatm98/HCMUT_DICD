@@ -19,7 +19,10 @@ channels:
 dependencies:
   - python>=3.9
   - make
+  - pip
   - iverilog       # HW1, HW2 simulation
   - verilator      # HW1, HW2 fast simulation + lint
   - gtkwave        # waveforms
   - yosys          # HW3 synthesis to SKY130 gates
+  - pip:
+      - ciel        # SKY130 PDK manager (formerly volare) -- fetch the liberty for synth

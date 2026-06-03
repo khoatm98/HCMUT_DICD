@@ -63,7 +63,14 @@ export STD_CELL_LIBRARY="sky130_fd_sc_hd"
 EOS
 
 echo
-echo ">> Done. Run flows with:   make smoke EDA_ENV=conda"
+echo ">> Done. Run sim flows with:   make smoke EDA_ENV=conda"
+echo
+echo ">> To run HW3 SYNTHESIS on conda, fetch the SKY130 PDK once (Yosys is already"
+echo "   in this env). 'ciel' (pip) is installed; enable a pinned PDK into the env:"
+echo "       conda run -n $ENV_NAME ciel enable --pdk-root \"$PREFIX/share/pdk\" <open_pdks-commit>"
+echo "   (see https://github.com/fossi-foundation/ciel for the commit list). The"
+echo "   activate hook already points PDK_ROOT there, so 'make hw3 ... EDA_ENV=conda'"
+echo "   synthesis then finds the liberty. STA / power / APR still use Docker."
 if [ "$PROFILE" = full ]; then
     echo ">> Pin versions for a cohort:  conda env export -n $ENV_NAME > env/conda/conda-lock.yml"
 fi

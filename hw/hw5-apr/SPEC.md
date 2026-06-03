@@ -23,17 +23,33 @@ stage and confirming post-route timing.
   trade area vs routability (and observe the effect on congestion/timing).
 
 ## Why this design
-`conv_engine` is **macro-free** (image/kernel/result are flop arrays, one shared
-multiplier) → an all-standard-cell block that places and routes quickly on a
-laptop, and whose floorplan you can *read*: the flop arrays and the multiplier
-are visible, and the clock tree fans out to all the storage flops.
+`conv_engine` is small but exercises the key back-end skills: it has one shared
+multiplier + a result/kernel flop register set **and one SKY130 OpenRAM SRAM hard
+macro** (the feature-map buffer). So APR here is a real **mixed standard-cell +
+macro** flow — you place the macro, build the power grid around it, and route to
+it — yet it's still small enough to finish on a laptop. The floorplan is readable:
+the SRAM macro is one big block, with standard cells (the multiplier, control,
+flops) placed around it and the clock tree fanning out.
+
+## Macro integration (the new part vs a pure std-cell block)
+The conv engine instantiates `sky130_sram_1kbyte_1rw1r_32x256_8`. The flow:
+- **synthesis** blackboxes the macro (its `.lib` gives the interface/timing);
+- **floorplan/placement** places the macro at a fixed location (`MACROS` in
+  [`04_APR/config.json`](04_APR/config.json)) with a halo for routing;
+- **PDN** connects the macro's power pins to the grid (`PDN_MACRO_CONNECTIONS`);
+- **routing/signoff** route to the macro pins and DRC/LVS include it.
+
+`make prep` (in `04_APR/`) symlinks the macro's `.lef`/`.gds`/`.lib` into
+`macros/` from the sky130 OpenRAM macros that ship with OpenLane — adjust
+`SRAM_MACRO_DIR` in the Makefile if your image stores them elsewhere.
 
 ## Definition of done
-- Flow completes to a routed layout and a streamed **GDSII**.
-- **DRC clean** (0 violations) and **LVS match** (layout ≡ netlist).
+- Flow completes to a routed layout and a streamed **GDSII**, with the **SRAM
+  macro placed** and power-connected.
+- **DRC clean** (0 violations) and **LVS match** (layout ≡ netlist, incl. the macro).
 - Post-route **STA** meets the clock (worst slack ≥ 0).
-- You inspected and can explain: the floorplan, a congestion view, the clock
-  tree, and where the multiplier / flop arrays ended up.
+- You inspected and can explain: the floorplan (with the macro), a congestion
+  view, the clock tree, and where the multiplier / flops landed around the macro.
 
 ## Reports / artifacts to inspect (under `runs/<tag>/`)
 floorplan & placement DEFs, congestion heatmap, CTS report, routed DEF, DRC and

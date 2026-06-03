@@ -33,6 +33,9 @@ RTL      ?= conv_engine.v
 COMMON   := ../../../common
 CONV_INC := $(COMMON)/rtl/conv
 REF_RTL  := $(CONV_INC)/conv_engine.v
+# Behavioral model of the SKY130 OpenRAM macro -- SIMULATION ONLY (synthesis
+# blackboxes the macro; APR places the real .lef/.gds). Always compiled for sim.
+SRAM_MODEL := $(CONV_INC)/sky130_sram_1kbyte_1rw1r_32x256_8.v
 
 # committed public testbench + golden patterns
 TB         := ../00_TB/conv_engine_tb.v
@@ -59,7 +62,7 @@ prep:
 vsim: prep
 	verilator --binary --timing -Wall -Wno-fatal $(VERILATOR_FLAGS) \
 		--Mdir $(BUILD)/obj_dir --top-module $(TB_TOP) -o V$(TB_TOP) \
-		$(abspath $(RTL)) $(abspath $(TB))
+		$(abspath $(RTL)) $(abspath $(SRAM_MODEL)) $(abspath $(TB))
 	cd $(BUILD) && ./obj_dir/V$(TB_TOP) | tee sim/$(TOP)_vl.log
 	@grep -q "RESULT: PASS" $(BUILD)/sim/$(TOP)_vl.log \
 		&& echo ">> verilator sim PASS" \
@@ -67,7 +70,7 @@ vsim: prep
 
 # ---- Icarus self-checking sim ----
 sim: prep
-	iverilog $(IVERILOG_FLAGS) -o $(BUILD)/$(TOP).vvp $(abspath $(RTL)) $(abspath $(TB))
+	iverilog $(IVERILOG_FLAGS) -o $(BUILD)/$(TOP).vvp $(abspath $(RTL)) $(abspath $(SRAM_MODEL)) $(abspath $(TB))
 	cd $(BUILD) && vvp $(TOP).vvp | tee sim/$(TOP).log
 	@grep -q "RESULT: PASS" $(BUILD)/sim/$(TOP).log \
 		&& echo ">> iverilog sim PASS" \
@@ -75,7 +78,7 @@ sim: prep
 
 # ---- Verilator lint of the RTL ----
 lint:
-	verilator --lint-only -Wall $(VERILATOR_FLAGS) $(abspath $(RTL))
+	verilator --lint-only -Wall $(VERILATOR_FLAGS) $(abspath $(RTL)) $(abspath $(SRAM_MODEL))
 	@echo ">> verilator lint clean"
 
 # ---- open the waveform ----

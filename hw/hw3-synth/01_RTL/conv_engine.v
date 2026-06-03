@@ -3,161 +3,176 @@
 // convolution engine, then SYNTHESIZE it, prove gate-equivalence, and analyze
 // area/timing.
 //
-// The module interface (ports/params) is FIXED -- do NOT change it, or the
-// testbench, the synthesis flow, and HW5 (which places-and-routes this design)
-// will break. Read SPEC.md for the streaming protocol and the Q6.10 rules, and
-// study common/rtl/alu/alu.v for the FXMUL round-half-up + saturation idiom.
+// The feature map is stored in a SKY130 OpenRAM HARD MACRO
+// (sky130_sram_1kbyte_1rw1r_32x256_8): you write the 64 pixels into it during
+// LOAD, and read them back during COMPUTE. The macro has SYNCHRONOUS (registered)
+// read -- the address is sampled on a clock edge and the data is valid the NEXT
+// cycle -- so each 3x3 tap takes two phases: ISSUE (present the read address) then
+// ACCUMULATE (the data is ready -> multiply-accumulate). The SRAM control signals
+// must be driven COMBINATIONALLY so the macro samples the right address.
 //
-// What is provided for you:
-//   * the full port list + parameters,
-//   * the saturation/rounding constants and wide accumulator declaration,
-//   * the FSM state register and the LOAD phase (streaming kernel+image in),
-//   * the OUTPUT and DONE phases (streaming results out + o_done pulse).
-// What YOU implement (the heart of the design):
-//   * the tap -> (dr,dc) neighbour mapping with zero padding,
-//   * the single shared multiplier and the sequential 9-tap accumulate,
-//   * the per-pixel round-half-up + saturate write-back into res[].
+// The module interface (ports/params) is FIXED -- do NOT change it (the
+// testbench, synthesis, and HW5 APR depend on it). Read SPEC.md and study
+// common/rtl/alu/alu.v for the FXMUL round-half-up + saturate idiom.
 //
-// RTL style requirements (graded + needed for clean synthesis): synthesizable
-// (NO $readmemh/initial here), parameterized, active-low SYNCHRONOUS reset, no
-// latches (assign every reg on every path).
+// PROVIDED: the SRAM instance + its combinational control, the tap->(dr,dc)
+// mapping with zero padding, the datapath wires (product, rounded sum, saturate),
+// the LOAD / OUTPUT / DONE phases. YOU IMPLEMENT the COMPUTE accumulate (TODO).
 // =============================================================================
 `include "conv_defs.vh"
 
 module conv_engine #(
-    parameter integer WIDTH = 16,   // data width
-    parameter integer FRAC  = 10,   // fraction bits (Q6.10)
-    parameter integer IMG   = 8     // image is IMG x IMG
+    parameter integer WIDTH = 16,
+    parameter integer FRAC  = 10,
+    parameter integer IMG   = 8
 ) (
     input  wire                    clk,
-    input  wire                    rst_n,     // active-low SYNCHRONOUS reset
-    input  wire                    i_valid,   // host asserts when i_data is valid
-    input  wire signed [WIDTH-1:0] i_data,    // streamed word (Q6.10)
-    output reg                     o_valid,   // high for one cycle per result word
-    output reg  signed [WIDTH-1:0] o_data,    // result word (Q6.10)
-    output reg                     o_done,    // high for one cycle after last result
-    output wire                    o_busy     // high while loading/computing
+    input  wire                    rst_n,
+    input  wire                    i_valid,
+    input  wire signed [WIDTH-1:0] i_data,
+    output reg                     o_valid,
+    output reg  signed [WIDTH-1:0] o_data,
+    output reg                     o_done,
+    output wire                    o_busy
 );
-    // ---------------- derived sizes ----------------
     localparam integer NPIX  = IMG * IMG;
     localparam integer NTAP  = 9;
     localparam integer IDXW  = $clog2(NPIX);
     localparam integer KIDXW = 4;
+    localparam signed [WIDTH:0]     MAXV = (1 <<< (WIDTH-1)) - 1;
+    localparam signed [WIDTH:0]     MINV = -(1 <<< (WIDTH-1));
+    localparam signed [WIDTH-1:0]   SMAX = MAXV[WIDTH-1:0];
+    localparam signed [WIDTH-1:0]   SMIN = MINV[WIDTH-1:0];
+    localparam integer              ACCW = 2*WIDTH + 8;
+    localparam signed [ACCW-1:0]    RND  = (1 <<< (FRAC-1));
 
-    // ---------------- saturation / rounding constants (mirror the ALU) ----------------
-    localparam signed [WIDTH:0]     MAXV = (1 <<< (WIDTH-1)) - 1;   // +32767
-    localparam signed [WIDTH:0]     MINV = -(1 <<< (WIDTH-1));      // -32768
-    localparam signed [WIDTH-1:0]   SMAX = MAXV[WIDTH-1:0];         // 0x7FFF
-    localparam signed [WIDTH-1:0]   SMIN = MINV[WIDTH-1:0];         // 0x8000
-    localparam integer ACCW = 2*WIDTH + 8;                          // wide accumulator
-    localparam signed [ACCW-1:0]    RND  = (1 <<< (FRAC-1));        // round-half-up bias
+    reg signed [WIDTH-1:0] kern [0:NTAP-1];
+    reg signed [WIDTH-1:0] res  [0:NPIX-1];
 
-    // ---------------- storage (flop arrays, loaded by the stream) ----------------
-    reg signed [WIDTH-1:0] kern  [0:NTAP-1];
-    reg signed [WIDTH-1:0] img   [0:NPIX-1];
-    reg signed [WIDTH-1:0] res   [0:NPIX-1];
-
-    // ---------------- control state ----------------
-    reg  [1:0]            state;
-    reg  [KIDXW-1:0]      kcnt;
-    reg  [IDXW:0]         icnt;
-    reg  [IDXW:0]         ocnt;
-    reg  [IDXW-1:0]       pix;
-    reg  [3:0]            tap;
+    reg  [1:0]             state;
+    reg  [KIDXW-1:0]       kcnt;
+    reg  [IDXW:0]          icnt, ocnt;
+    reg  [IDXW-1:0]        pix;
+    reg  [3:0]             tap;
+    reg                    rd_phase;
     reg  signed [ACCW-1:0] acc;
+    reg                    pad_lat;
+    reg  signed [WIDTH-1:0] kern_lat;
     integer ii;
 
-    // ---------------- output-pixel row/col and tap offsets ----------------
+    // ---- tap -> neighbour coordinate (PROVIDED) ----
     wire [IDXW-1:0] prow = pix / IMG[IDXW-1:0];
     wire [IDXW-1:0] pcol = pix % IMG[IDXW-1:0];
-    reg  signed [IDXW+1:0] nrow, ncol;
     reg  signed [3:0]      dr, dc;
+    reg  signed [IDXW+1:0] nrow, ncol;
     always @* begin
-        // TODO: decode the current tap (0..8) into (dr, dc), each in {-1,0,1},
-        //       using the layout t = (dr+1)*3 + (dc+1). Beware: tap mod 3, NOT
-        //       tap[1:0]. Then form nrow = prow + dr, ncol = pcol + dc.
-        dr   = 4'sd0;                    // <-- replace
-        dc   = 4'sd0;                    // <-- replace
+        case (tap)
+            4'd0,4'd3,4'd6: dc = -1;  4'd1,4'd4,4'd7: dc = 0;  default: dc = 1;
+        endcase
+        case (tap)
+            4'd0,4'd1,4'd2: dr = -1;  4'd3,4'd4,4'd5: dr = 0;  default: dr = 1;
+        endcase
         nrow = $signed({2'b00, prow}) + dr;
         ncol = $signed({2'b00, pcol}) + dc;
     end
-
-    // in-bounds neighbour pixel (zero padding) and its flat index
     wire inb = (nrow >= 0) && (nrow < IMG) && (ncol >= 0) && (ncol < IMG);
     wire [IDXW-1:0] nidx = nrow[IDXW-1:0] * IMG[IDXW-1:0] + ncol[IDXW-1:0];
-    wire signed [WIDTH-1:0] pixval = inb ? img[nidx] : {WIDTH{1'b0}};
 
-    // ---------------- the single shared multiplier ----------------
-    // TODO: form the Q12.20 product of the current kernel tap and pixval.
-    wire signed [2*WIDTH-1:0] prod = {(2*WIDTH){1'b0}};   // <-- replace
-
-    // ---------------- per-pixel round-half-up + saturate ----------------
-    wire signed [ACCW-1:0] accr = (acc + RND) >>> FRAC;
-    reg  signed [WIDTH-1:0] pixres;
+    // ---- SRAM hard macro + its COMBINATIONAL control (PROVIDED) ----
+    reg         csb0, web0;  reg [7:0] addr0;  reg [31:0] din0;  wire [31:0] dout0;
+    reg         csb1;        reg [7:0] addr1;                    wire [31:0] dout1;
+    sky130_sram_1kbyte_1rw1r_32x256_8 u_img (
+        .clk0(clk), .csb0(csb0), .web0(web0), .wmask0(4'hF),
+        .addr0(addr0), .din0(din0), .dout0(dout0),
+        .clk1(clk), .csb1(csb1), .addr1(addr1), .dout1(dout1)
+    );
     always @* begin
-        // TODO: clamp accr to [SMIN, SMAX] (mirror the ALU FXMUL saturation).
-        pixres = accr[WIDTH-1:0];        // <-- replace with saturating clamp
+        csb0 = 1'b1; web0 = 1'b1; addr0 = 8'd0; din0 = 32'd0;
+        csb1 = 1'b1; addr1 = 8'd0;
+        if (state == `CONV_S_LOAD && i_valid && (kcnt >= NTAP[KIDXW-1:0])) begin
+            csb0 = 1'b0; web0 = 1'b0; addr0 = {{(8-(IDXW+1)){1'b0}}, icnt};
+            din0 = {{(32-WIDTH){1'b0}}, i_data};
+        end
+        if (state == `CONV_S_COMPUTE && rd_phase == 1'b0) begin
+            csb1 = 1'b0; addr1 = inb ? {{(8-IDXW){1'b0}}, nidx} : 8'd0;   // issue read
+        end
+    end
+
+    // ---- datapath wires (PROVIDED): pixel read -> product -> rounded+saturated sum ----
+    wire signed [WIDTH-1:0]   pixval   = pad_lat ? {WIDTH{1'b0}} : dout1[WIDTH-1:0];
+    wire signed [2*WIDTH-1:0] prod     = $signed(kern_lat) * $signed(pixval);
+    wire signed [ACCW-1:0]    acc_next = acc + {{(ACCW-2*WIDTH){prod[2*WIDTH-1]}}, prod};
+    wire signed [ACCW-1:0]    accr     = (acc_next + RND) >>> FRAC;
+    reg  signed [WIDTH-1:0]   pixres;
+    always @* begin
+        if      (accr > MAXV) pixres = SMAX;
+        else if (accr < MINV) pixres = SMIN;
+        else                  pixres = accr[WIDTH-1:0];
     end
 
     assign o_busy = (state != `CONV_S_DONE);
 
-    // ---------------- sequential control + datapath ----------------
     always @(posedge clk) begin
         if (!rst_n) begin
-            state   <= `CONV_S_LOAD;
-            kcnt    <= {KIDXW{1'b0}};
-            icnt    <= {(IDXW+1){1'b0}};
-            ocnt    <= {(IDXW+1){1'b0}};
-            pix     <= {IDXW{1'b0}};
-            tap     <= 4'd0;
-            acc     <= {ACCW{1'b0}};
-            o_valid <= 1'b0;
-            o_data  <= {WIDTH{1'b0}};
-            o_done  <= 1'b0;
-            for (ii = 0; ii < NTAP; ii = ii + 1) kern[ii] <= {WIDTH{1'b0}};
-            for (ii = 0; ii < NPIX; ii = ii + 1) begin
-                img[ii] <= {WIDTH{1'b0}};
-                res[ii] <= {WIDTH{1'b0}};
-            end
+            state <= `CONV_S_LOAD; kcnt <= 0; icnt <= 0; ocnt <= 0;
+            pix <= 0; tap <= 0; rd_phase <= 0; acc <= 0; pad_lat <= 0; kern_lat <= 0;
+            o_valid <= 1'b0; o_data <= 0; o_done <= 1'b0;
+            for (ii = 0; ii < NTAP; ii = ii + 1) kern[ii] <= 0;
+            for (ii = 0; ii < NPIX; ii = ii + 1) res[ii]  <= 0;
         end else begin
             o_valid <= 1'b0;
             o_done  <= 1'b0;
-
             case (state)
-                // -------- LOAD (provided): 9 kernel words then NPIX image words --------
+                // -------- LOAD: kernel -> flops, image -> SRAM (write via comb control) --------
                 `CONV_S_LOAD: begin
                     if (i_valid) begin
                         if (kcnt < NTAP[KIDXW-1:0]) begin
-                            kern[kcnt] <= i_data;
-                            kcnt       <= kcnt + 1'b1;
+                            kern[kcnt] <= i_data; kcnt <= kcnt + 1'b1;
                         end else begin
-                            img[icnt[IDXW-1:0]] <= i_data;
                             if (icnt == (NPIX-1)) begin
-                                icnt  <= icnt + 1'b1;
-                                state <= `CONV_S_COMPUTE;
-                                pix   <= {IDXW{1'b0}};
-                                tap   <= 4'd0;
-                                acc   <= {ACCW{1'b0}};
-                            end else begin
-                                icnt <= icnt + 1'b1;
-                            end
+                                icnt <= icnt + 1'b1; state <= `CONV_S_COMPUTE;
+                                pix <= 0; tap <= 0; rd_phase <= 0; acc <= 0;
+                            end else icnt <= icnt + 1'b1;
                         end
                     end
                 end
 
-                // -------- COMPUTE (TODO): 9-tap MAC, then round+sat into res --------
+                // -------- COMPUTE: ISSUE read, then ACCUMULATE (the data is ready) --------
                 `CONV_S_COMPUTE: begin
-                    // TODO: implement the sequential multiply-accumulate.
-                    //   while tap < 9 : acc <= acc + sign_extend(prod); tap <= tap+1;
-                    //   at tap == 9   : res[pix] <= pixres; reset acc, tap; advance
-                    //                   pix; when pix == NPIX-1 -> go to OUTPUT.
-                    // The starter just jumps straight to OUTPUT with res[] = 0,
-                    // so the checker will report mismatches until you fill this in.
-                    state <= `CONV_S_OUTPUT;
-                    ocnt  <= {(IDXW+1){1'b0}};
+                    if (rd_phase == 1'b0) begin
+                        // ISSUE phase: the read address is presented combinationally
+                        // this cycle (see the SRAM control block above). Latch the
+                        // pad flag + the kernel weight for use next cycle.
+                        pad_lat  <= ~inb;
+                        kern_lat <= kern[tap[3:0]];
+                        rd_phase <= 1'b1;
+                    end else begin
+                        // ACCUMULATE phase: dout1 (hence `pixval`/`prod`/`acc_next`) is
+                        // now valid for this tap.
+                        rd_phase <= 1'b0;
+                        // ===================== TODO =====================
+                        // 1) Add this tap's product to the accumulator.
+                        // 2) After the 9th tap (tap == NTAP-1), write the rounded +
+                        //    saturated result `pixres` into res[pix], clear acc, and
+                        //    advance to the next pixel (or to OUTPUT after the last).
+                        //    Otherwise just advance `tap`.
+                        // (Use `acc_next` / `pixres` -- the provided datapath wires.)
+                        //
+                        // Placeholder so the design compiles + runs (and FAILS until
+                        // you implement it): finish the pixel with a zero result.
+                        if (tap == NTAP[3:0]-1) begin
+                            res[pix] <= {WIDTH{1'b0}};   // <-- TODO: should be pixres
+                            acc <= 0; tap <= 0;
+                            if (pix == (NPIX-1)) begin state <= `CONV_S_OUTPUT; ocnt <= 0; end
+                            else pix <= pix + 1'b1;
+                        end else begin
+                            tap <= tap + 1'b1;           // <-- TODO: also accumulate (acc <= acc_next)
+                        end
+                        // ================================================
+                    end
                 end
 
-                // -------- OUTPUT (provided): stream NPIX results in raster order --------
+                // -------- OUTPUT: stream NPIX results in raster order (PROVIDED) --------
                 `CONV_S_OUTPUT: begin
                     o_valid <= 1'b1;
                     o_data  <= res[ocnt[IDXW-1:0]];
@@ -165,15 +180,14 @@ module conv_engine #(
                     ocnt <= ocnt + 1'b1;
                 end
 
-                // -------- DONE (provided): pulse o_done once, then park --------
+                // -------- DONE (PROVIDED) --------
                 default: begin
-                    if (ocnt == NPIX[IDXW:0]) begin
-                        o_done <= 1'b1;
-                        ocnt   <= ocnt + 1'b1;
-                    end
+                    if (ocnt == NPIX[IDXW:0]) begin o_done <= 1'b1; ocnt <= ocnt + 1'b1; end
                     state <= `CONV_S_DONE;
                 end
             endcase
         end
     end
+
+    wire _unused = &{1'b0, dout0, acc_next, pixres};   // (remove once you use these)
 endmodule
