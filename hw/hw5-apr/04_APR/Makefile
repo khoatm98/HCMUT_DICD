@@ -15,11 +15,11 @@ COMMON   := ../../../common/flow
 CONV_DIR := ../../../../common/rtl/conv      # relative to src/ (04_APR/src -> repo root)
 
 # The conv engine instantiates one SRAM hard macro; APR needs its .lef/.gds/.lib.
-# The sky130 OpenRAM macros ship with OpenLane; ADJUST this to your image if the
-# path differs (config.json reads them from dir::macros/).
-# PDK_ROOT: in-repo pdk/ if vendored (scripts/vendor-pdk.sh), else /foss/pdks.
+# pdk.mk resolves SRAM_MACRO_DIR -- it prefers the in-repo vendored macro under
+# pdk/.../sky130_sram_macros (see pdk/NOTICE), else the external PDK. Override
+# SRAM_MACRO_DIR=<dir> if your macro views live elsewhere (config.json reads the
+# staged copies from dir::macros/).
 include ../../../common/flow/pdk.mk
-SRAM_MACRO_DIR ?= $(PDK_ROOT)/sky130A/libs.ref/sky130_sram_macros
 SRAM           := sky130_sram_1kbyte_1rw1r_32x256_8
 
 .DEFAULT_GOAL := apr

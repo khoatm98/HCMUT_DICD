@@ -30,10 +30,10 @@ LIB      := $(SCL)/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
 
 # ---- SRAM hard macro: blackboxed in synthesis; its .lib gives STA the timing ----
 # The behavioral model supplies the interface for the blackbox; the macro's
-# liberty ships with the sky130 OpenRAM macros. ADJUST SRAM_LIB to your image
-# if the path differs (the macros are not in the base std-cell PDK).
+# liberty (SRAM_LIB) is resolved by pdk.mk -- it prefers the in-repo vendored
+# copy under pdk/.../sky130_sram_macros (see pdk/NOTICE), else the external PDK.
+# Override SRAM_LIB=<file> if your macro liberty lives elsewhere.
 SRAM_MODEL := $(CONV_INC)/sky130_sram_1kbyte_1rw1r_32x256_8.v
-SRAM_LIB   ?= $(PDK_ROOT)/sky130A/libs.ref/sky130_sram_macros/lib/sky130_sram_1kbyte_1rw1r_32x256_8_TT_1p8V_25C.lib
 
 NETLIST  := $(BUILD)/conv_netlist.v
 AREA_RPT := $(BUILD)/conv_area.rpt
