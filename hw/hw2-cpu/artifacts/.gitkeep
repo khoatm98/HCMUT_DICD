@@ -1,0 +1,6 @@
+# Put your HW2 submission artifacts here:
+#   - completed rtl/cpu_core.v (or a copy)
+#   - the `make` log showing "ALL PROGRAMS PASS"
+#   - a GTKWave screenshot of a MAC instruction accumulating
+#   - at least one of your own test programs (programs/*.s)
+#   - a short note: how MAC reuses the ALU multiplier
