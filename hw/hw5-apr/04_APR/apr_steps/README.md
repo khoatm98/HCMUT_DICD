@@ -1,10 +1,10 @@
 # APR, one step at a time
 
 These are the back-end (place & route) stages of HW5, split into small,
-readable scripts so you can **see the flow**. The headless `make apr-conda`
-runs them all in order (via [`run_all.tcl`](run_all.tcl), which
-[`../apr_openroad.tcl`](../apr_openroad.tcl) calls); in the **GUI** you run them
-one at a time and watch each stage appear.
+readable scripts so you can **see the flow**. They live in this lab folder
+(`04_APR/apr_steps/`). The headless `make apr-conda` runs them all in order (via
+[`run_all.tcl`](run_all.tcl)); the GUI launcher is [`gui_start.tcl`](gui_start.tcl);
+in the **GUI** you run them one at a time and watch each stage appear.
 
 | Step | File | What it does |
 |------|------|--------------|

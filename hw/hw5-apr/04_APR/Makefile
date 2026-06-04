@@ -97,7 +97,7 @@ $(NETLIST): $(CONV_RTL)/conv_engine.v $(CONV_RTL)/conv_defs.vh | prep
 
 $(DEF): $(NETLIST) $(SDC)
 	$(APR_ENV) \
-	  $(OPENROAD) -no_init -exit $(COMMON)/apr_openroad.tcl 2>&1 | tee build/apr_conda.log
+	  $(OPENROAD) -no_init -exit apr_steps/run_all.tcl 2>&1 | tee build/apr_conda.log
 
 $(GDS): $(DEF)
 	SC_LEF="$(SC_LEF)" MACRO_LEF="$(MACRO_LEF)" SC_GDS="$(SC_GDS)" MACRO_GDS="$(MACRO_GDS)" \
@@ -111,23 +111,23 @@ gui:
 
 # ---- interactive APR in the OpenROAD GUI (needs a Qt-enabled OpenROAD) -------
 #   make gui-apr  OPENROAD=$$HOME/openroad-install/bin/openroad
-# Synthesizes first (headless), then runs the SAME apr_openroad.tcl INSIDE the
+# Synthesizes first (headless), then runs the SAME local apr_steps INSIDE the
 # GUI -- each stage (floorplan -> macro -> PDN -> placement -> CTS -> routing)
 # renders live as it finishes, and the window stays open for inspection.
 # Display: over 'ssh -Y' it uses X; on a headless box add '-platform vnc' (see
 # INSTRUCTIONS) and connect a VNC client.
 gui-apr: $(NETLIST)
 	@mkdir -p build
-	$(APR_ENV) $(OPENROAD) -gui $(COMMON)/apr_openroad.tcl
+	$(APR_ENV) $(OPENROAD) -gui apr_steps/run_all.tcl
 
 # ---- step THROUGH the flow yourself in the GUI (most instructive) ------------
 #   make gui-steps OPENROAD=$$HOME/openroad-install/bin/openroad
 # Synthesizes first, opens the GUI with the libraries + design already loaded
-# (apr_steps/00_load.tcl), and prints the 'source .../01..07' lines to paste one
-# at a time. See common/flow/apr_steps/README.md.
+# (apr_steps/00_load.tcl), and prints the 'source apr_steps/01..07' lines to paste
+# one at a time. See apr_steps/README.md.
 gui-steps: $(NETLIST)
 	@mkdir -p build
-	$(APR_ENV) $(OPENROAD) -gui $(COMMON)/gui_steps.tcl
+	$(APR_ENV) $(OPENROAD) -gui apr_steps/gui_start.tcl
 
 # ---- open the ALREADY-routed result in the OpenROAD GUI (fast, no re-route) --
 #   make gui-view OPENROAD=$$HOME/openroad-install/bin/openroad

@@ -1,8 +1,8 @@
 # =============================================================================
 # run_all.tcl  --  run the whole back-end by sourcing each step in order. This
-# is the headless equivalent of the step-by-step GUI walkthrough, and what
-# common/flow/apr_openroad.tcl (the Makefile entry point) uses. Edit the steps,
-# not a second copy -- there is ONE source of truth.
+# is the headless equivalent of the step-by-step GUI walkthrough, and the entry
+# point the 04_APR Makefile runs ('make apr-conda' headless, 'make gui-apr' in
+# the GUI). Edit the step files -- this just chains them.
 # =============================================================================
 set _steps_dir [file dirname [info script]]
 foreach _s {00_load 01_floorplan 02_place_io_macro 03_pdn 04_place 05_cts 06_route 07_finish} {

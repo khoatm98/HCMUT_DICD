@@ -53,13 +53,14 @@ write-up relating the layout to the design.
 
 ## Conda back-end (no Docker): Yosys → OpenROAD → Magic
 LibreLane isn't reliably installable on conda, so the repo ships its **own**
-transparent conda flow — each stage is a readable script in
-[`common/flow/`](../../common/flow/), no orchestrator black box:
+transparent conda flow — each back-end stage is a readable script in this lab's
+[`04_APR/apr_steps/`](04_APR/apr_steps/), no orchestrator black box:
 
 ```bash
 make apr-conda        # RTL -> GDS with the conda EDA env (yosys + openroad + magic)
 ```
-What it does (see [`common/flow/apr_openroad.tcl`](../../common/flow/apr_openroad.tcl)):
+What it does (the OpenROAD stages are [`04_APR/apr_steps/00_load … 07_finish`](04_APR/apr_steps/),
+chained by [`run_all.tcl`](04_APR/apr_steps/run_all.tcl)):
 1. **yosys** synthesizes `conv_engine` against the in-repo std-cell `.lib` + SRAM `.lib`;
 2. **OpenROAD** floorplans, places the SRAM macro (`place_macro`), drops tapcells +
    the PDN, global/detailed-places the std cells, runs CTS, then global + detailed
@@ -89,7 +90,7 @@ Qt-enabled OpenROAD and a display.
 ```bash
 make gui-apr OPENROAD=$HOME/openroad-install/bin/openroad
 ```
-This synthesizes headlessly, then runs the same `apr_openroad.tcl` *inside* the GUI.
+This synthesizes headlessly, then runs the same `apr_steps` flow *inside* the GUI.
 Each stage renders as it finishes — die/rows appear, the SRAM macro lands in the
 lower-left, std cells fill in, the clock tree fans out, then metal routing. The
 window stays open at the end for inspection.
@@ -102,8 +103,8 @@ This opens the GUI with the libraries + design **already loaded** (step 0) and
 prints the `source …/01_floorplan.tcl … 07_finish.tcl` lines. Paste them into the
 **Scripting** console one at a time and watch the canvas update after each — every
 step also prints what it did and which one to run next. Each stage is one small
-readable file in [`common/flow/apr_steps/`](../../common/flow/apr_steps/) (see its
-[README](../../common/flow/apr_steps/README.md)):
+readable file in [`04_APR/apr_steps/`](04_APR/apr_steps/) (see its
+[README](04_APR/apr_steps/README.md)):
 
 | Step | Stage |
 |---|---|
